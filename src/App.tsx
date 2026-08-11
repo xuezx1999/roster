@@ -17,7 +17,7 @@ import { AddTask, type AddTaskHandle } from './components/AddTask'
 import { ListPanel } from './components/ListPanel'
 import { Bracket } from './components/Bracket'
 import type { Task, RosterExport } from './types'
-import { downloadJSON } from './utils'
+import { downloadJSON, parseRosterImport } from './utils'
 
 // 当前列表列宽（含桌面端间距与分隔线，即 snap/翻页步进）：桌面每列 425px（400 内容 + 24 间距 + 1px 分隔线），移动端整屏宽
 const getColWidth = (el: HTMLElement) => el.querySelector('section')?.offsetWidth ?? el.clientWidth
@@ -292,31 +292,13 @@ function App() {
     if (!file) return
     const reader = new FileReader()
     reader.onload = () => {
-      try {
-        const data = JSON.parse(String(reader.result))
-        if (data && typeof data === 'object' && data.app === 'ROSTER') {
-          if (Array.isArray(data.lists)) {
-            pendingImportRef.current = data as RosterExport
-          } else if (Array.isArray(data.tasks) && typeof data.title === 'string') {
-            // Legacy v1 format: single list
-            const legacyId = crypto.randomUUID()
-            pendingImportRef.current = {
-              app: 'ROSTER',
-              version: 2,
-              exportedAt: data.exportedAt ?? Date.now(),
-              activeListId: legacyId,
-              lists: [{ id: legacyId, title: data.title, tasks: data.tasks }],
-            }
-          } else {
-            setImportError(true)
-            return
-          }
-          setImportError(false)
-          setConfirmAction('import')
-        } else {
-          setImportError(true)
-        }
-      } catch {
+      // 统一用 parseRosterImport（与桌面 ListPanel 一致）：先识别 v1 旧格式，再校验 v2
+      const parsed = parseRosterImport(String(reader.result))
+      if (parsed) {
+        pendingImportRef.current = parsed
+        setImportError(false)
+        setConfirmAction('import')
+      } else {
         setImportError(true)
       }
     }

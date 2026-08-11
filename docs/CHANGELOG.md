@@ -1,8 +1,26 @@
 # CHANGELOG.md — 版本演进记录
 
-> 项目**无 git 仓库**，本文件内容由代码痕迹（IndexedDB schema、类型、注释、兼容分支）**推断重建**，非官方发布记录。
+> 项目已接入 git（main 分支，远程 origin→github.com/xuezx1999/roster.git）；早期版本（v1/v0.x）由代码痕迹推断重建，0.8.5 起有 commit 记录。
 > 格式：`[v版本] 日期 — 摘要`。未标注日期处标记为"结构推断"。
 > 未来每次变更请在本文件顶部追加条目（这是对 AI 维护者最重要的文档之一）。
+
+---
+
+## [0.8.6] 2026-08-11 — 上线后检查：修复移动端 v1 导入 + 同步过时文档
+
+### 修复
+- **移动端 v1 导入失效**：`App.tsx` 移动端 `handleFileSelect` 内联实现导入解析，要求 `data.app === 'ROSTER'` 才进入校验，v1 旧格式（无 app 字段）被拒。改为统一用 `utils.ts` 的 `parseRosterImport`（与桌面 `ListPanel` 一致，先识别 v1 再校验 v2），消除两套不一致实现。0.8.5 只修了 `parseRosterImport`，未同步 App.tsx 内联副本，本次补齐。
+- 涉及：`src/App.tsx`（import 加 `parseRosterImport`、`handleFileSelect` 重写，879→861 行）。
+
+### 文档同步（过时内容修正）
+- `DEVELOPMENT.md` §7 验证清单：分页"首尾循环切换"→"线性切换（首尾不可回绕）"（v0.3.0 已回退，验证清单漏改）。
+- `AI_CONTEXT.md`：App.tsx 行数 701→861；已知技术债移除"Cloudflare Pages 部署待执行"（已 Git 集成部署）。
+- `ARCHITECTURE.md`：useTodos 266→462 行、TaskItem 248→289 行。
+- `DECISIONS.md`：D2 现状/代价（写失败已提示，`updateActiveList`→`updateList`）；D6 标题标记"已由 D13 落地"；D10 重写为"测试与工程化"（Vitest/git/README/部署均已落地）；D11 标题标记"已由 D12 撤销"。
+- `CHANGELOG.md`：开头"无 git 仓库"→已接入；当前版本 0.0.0→0.8.4；工程化痕迹过时项修正；变更记录约定第 2 条修正。
+
+### 验证
+- `tsc -b` ✅、`lint` ✅(0 err)、`test` ✅(8/8)、`build` ✅。
 
 ---
 
@@ -470,7 +488,7 @@
 
 ## 当前版本
 
-- `package.json` version：`0.0.0`（未随功能更新，可忽略）。
+- `package.json` version：`0.8.4`。
 - IndexedDB `roster-db` 版本：`2`。
 - 导出格式 `RosterExport.version`：`2`。
 - 项目状态检查日期：2026-08-11。
@@ -520,12 +538,12 @@
 
 ---
 
-## 工程化痕迹（非功能版本）
+## 工程化痕迹（非功能版本，2026-08-11 已大部修复）
 
-- README.md 仍为 Vite 官方模板原文（未更新）。
+- ~~README.md 仍为 Vite 官方模板原文（未更新）。~~ → 已于 0.8.5 重写为项目介绍。
 - `generate-icons.py`：用 Pillow 生成 `public/icon-{192,512}.png`（运行于 macOS 字体路径）。
-- `.oxlintrc.json`：react/typescript/oxc 规则，但本机 `@oxlint/binding-darwin-universal` 缺失导致 lint 无法运行（环境问题，详见 DEVELOPMENT.md §5）。
-- 代码中的 `// eslint-disable-next-line react-hooks/exhaustive-deps` 为历史注释，对 oxlint 无效。
+- ~~`.oxlintrc.json`：本机 binding 缺失导致 lint 无法运行。~~ → 已于 0.8.5 修复（oxlint@latest 重装，lint 0 errors）。
+- 代码中的 `// eslint-disable-next-line react-hooks/exhaustive-deps` 为历史注释，对 oxlint 无效（保留，无实际作用）。
 
 ---
 
@@ -537,6 +555,6 @@
    新增/变更/修复：
    - ...
    ```
-2. 版本号从 `0.1.0` 起自定（当前 `0.0.0` 无参考意义）。
+2. 版本号从 `0.1.0` 起自定（当前 `0.8.4`）。
 3. 若改动涉及数据 schema：**必须**同时更新 `db.ts` 的 `DB_VERSION` 与本文档，并在 DECISIONS.md 记录。
 4. 若项目某日接入 git，将本文件条目与 commit 关联，并删除"结构推断"标注。

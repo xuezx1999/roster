@@ -16,9 +16,9 @@
 
 ## D2. 乐观更新 + fire-and-forget 落库
 
-**现状**：`updateActiveList` 先改 React state，`saveList` 后台执行不 await 不 catch。
+**现状**：`updateList` 先改 React state，`saveList` 后台执行不 await；写失败由 `reportSave(false)` → `saveError` 置位，App 顶部显示 `[!] 保存失败`（v0.6.0 起）。
 **理由**：IndexedDB 单机写入快，UI 无需等待；保证交互即时（长按/快速连续操作不卡顿）。
-**代价**：写失败（配额/隐私模式/浏览器异常）静默丢失，无提示无重试。
+**代价**：写失败仅提示不重试（无写队列）；`updateList` 在 setState updater 内调副作用（saveList/persistBackup），依赖 StrictMode 双执行幂等。
 **何时可改**：不要简单加 `await`（会破坏交互手感）。更优方案是写队列 + 失败重试 + 状态提示，且是**明确的功能增强任务**时再动。
 
 ---
@@ -50,7 +50,7 @@
 
 ---
 
-## D6. 样式：Tailwind v4 原子类 + 色值硬编码
+## D6. 样式：Tailwind v4 原子类 + 色值硬编码（已由 D13 token 化落地）
 
 **现状**：颜色/字号/行高以内联原子类重复书写（`text-[#F2F2F2]` 等），`@theme` 仅定义字体。
 **理由**：v4 快速迭代期最省事；改版未定稿前抽 token 反而反复返工。
@@ -86,16 +86,16 @@
 
 ---
 
-## D10. 零测试、零 CI、无 git
+## D10. 测试与工程化（2026-08-11 起补课）
 
-**现状**：无测试脚本、无 git 仓库、README 为 Vite 模板原文。
-**理由**：极简个人项目起步，优先功能。
-**代价**：`sortTasks`、迁移、导入校验、手势时序全靠手测，回归成本集中在少数高危逻辑。
-**何时可改**：首次引入测试应只覆盖纯函数（sortTasks、normalizeTask、迁移、导入校验），用 Vitest（与 Vite 同源）；建 git 与 CI 属工程化补课，见 DEVELOPMENT.md §10。
+**现状**：Vitest 纯函数测试已落地（`src/roster.test.ts`，8 用例覆盖 sortTasks/normalizeTask/parseRosterImport）；git 仓库已建（main，远程 origin→github.com/xuezx1999/roster.git）；README 已重写；Cloudflare Pages Git 集成部署。无 CI、无组件/交互测试。
+**理由**：极简个人项目起步优先功能；首测只覆盖纯函数（Vitest 与 Vite 同源），符合"先纯函数后交互"渐进策略。
+**代价**：手势时序、迁移、分页双同步等高危逻辑仍靠手测回归；无 CI 意味着 push 不自动跑 tsc/test。
+**何时可改**：引入 GitHub Actions 跑 `tsc -b` + `npm test` + `lint` 属工程化补课；组件/交互测试待真出现回归 bug 时再补。
 
 ---
 
-## D11. 列表分页：克隆页无限轮播，单列表禁滑，移除"新增列表"空白页
+## D11. 列表分页：克隆页无限轮播，单列表禁滑，移除"新增列表"空白页（已由 D12 撤销，保留作历史记录）
 
 **现状**：`>1` 个列表时渲染 `[clone(last), ...lists, clone(first)]` 共 N+2 页，滚到克隆页由 `jumpTo` 无动画瞬移回真实页形成循环；单列表/空列表 `overflow-x-hidden` 禁滑；新增列表入口移到右上角菜单，空列表时底部显示 `[+] ADD`。
 **理由**：多列表循环切换是明确的交互需求（首尾相接）；克隆页方案保留原生 scroll-snap 机制，不引入手势库/状态重构，改动面最小；单列表禁滑避免"滑到空处"；去掉末尾空白页后"新增列表"入口自然收敛到菜单与空状态。

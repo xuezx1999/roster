@@ -71,7 +71,7 @@ updateList(listId, updater)  // useTodos.ts:62
 
 ## 4. 核心模块说明
 
-### 4.1 useTodos（hooks/useTodos.ts，266 行）
+### 4.1 useTodos（hooks/useTodos.ts，462 行）
 全部数据操作：
 - `updateList(listId, updater)`：**唯一写入口**（v0.5.0 起，原 `updateActiveList` 已并入），含自动删除空列表逻辑。
 - 两套 API：`addTaskFor/updateTaskContentFor/toggleCompleteFor/toggleInProgressFor/removeTaskFor/clearCompletedFor/reorderTasksFor/updateTitleFor`（per-list，桌面多列按列调用）；`addTask/updateTaskContent/...`（activeListId 包装，移动端全局浮层）。
@@ -92,7 +92,7 @@ updateList(listId, updater)  // useTodos.ts:62
 - upgrade 逻辑：建 store → 若 `oldVersion < 2` 且存在旧 `tasks` store → 读出旧任务+旧标题 → 包成默认列表写入 `lists` → 删旧 store（见 §8 历史痕迹）。
 - 注意 `DB_VERSION = 2`，**不允许降级**；新增 schema 改动必须递增版本并写迁移分支。
 
-### 4.3 TaskItem（最复杂组件，248 行）
+### 4.3 TaskItem（最复杂组件，289 行）
 职责：一行任务的渲染 + 全部手势：
 - 文本单击 → 编辑态（input 自动 focus + select + scrollIntoView）
 - `[o]` 按钮单击/双击 → 进行中/完成（300ms 防抖区分）
