@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  --font-mono: 'IBM Plex Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
+}
+
+html {
+  background-color: #F2F2F2;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #F2F2F2;
+  color: #1A1A1A;
+  font-family: 'IBM Plex Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: none;
+}
+
+#root {
+  width: 100%;
+  min-height: 100svh;
+}
+
+input,
+button {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+input::placeholder {
+  color: #8C8C8C;
+  opacity: 1;
+}
