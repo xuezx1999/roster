@@ -70,5 +70,17 @@ export function parseRosterImport(text: string): RosterExport | null {
     )
   })
   if (!shapeOk) return null
+  // 校验 id 唯一性：列表 id 或列表内任务 id 重复会导致落库时 put 互相覆盖、state 与 DB 失同步（刷新后列表/任务数量变化）。
+  const listIds = new Set<string>()
+  for (const l of lists) {
+    const list = l as { id: string; tasks: { id: string }[] }
+    if (listIds.has(list.id)) return null
+    listIds.add(list.id)
+    const taskIds = new Set<string>()
+    for (const t of list.tasks) {
+      if (typeof t?.id !== 'string' || taskIds.has(t.id)) return null
+      taskIds.add(t.id)
+    }
+  }
   return obj as unknown as RosterExport
 }

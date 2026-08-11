@@ -184,6 +184,8 @@ export function TaskItem({
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // 中文输入法（IME）组合期间的回车用于确认候选词，不提交
+    if (e.nativeEvent.isComposing) return
     if (e.key === 'Enter') {
       saveEdit()
     } else if (e.key === 'Escape') {

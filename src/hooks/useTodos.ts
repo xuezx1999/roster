@@ -37,17 +37,39 @@ export function useTodos() {
   const [loaded, setLoaded] = useState(false)
   const [saveError, setSaveError] = useState(false)
   const [dataLossDetected, setDataLossDetected] = useState(false)
+  // 初始化读取失败（隐私模式/配额等）：置位后 App 显示错误而非永久卡在加载态
+  const [initError, setInitError] = useState(false)
+  // 库内是否存在可用备份：决定「从备份恢复」菜单入口是否显示
+  const [backupAvailable, setBackupAvailable] = useState(false)
   const initialized = useRef(false)
   const pendingBackupRef = useRef<string | null>(null)
+  const backupTimerRef = useRef<number | null>(null)
 
   // 写成功/失败报告（saveError 提示）；setState 同值自动 bail out，避免无谓重渲染
   const reportSave = useCallback((ok: boolean) => {
     setSaveError(!ok)
   }, [])
 
-  // 写成功后同步库内备份（RosterExport 格式，可被 parseRosterImport 恢复）
+  // 写成功后同步库内备份（RosterExport 格式，可被 parseRosterImport 恢复）。
+  // 500ms 防抖：连续操作（快速切换/批量删除）只写最后一次全量快照，降低写放大。
+  // 注意：主数据 saveList 是立即写的，备份仅作二次保险，500ms 延迟可接受。
   const persistBackup = useCallback((data: RosterExport) => {
-    saveBackup(JSON.stringify(data)).catch(() => {})
+    const raw = JSON.stringify(data)
+    if (backupTimerRef.current !== null) window.clearTimeout(backupTimerRef.current)
+    backupTimerRef.current = window.setTimeout(() => {
+      backupTimerRef.current = null
+      saveBackup(raw).then(
+        () => setBackupAvailable(true),
+        () => {} // 备份写失败静默，不影响主数据
+      )
+    }, 500)
+  }, [])
+
+  // 卸载时清理防抖定时器，避免写入过期快照
+  useEffect(() => {
+    return () => {
+      if (backupTimerRef.current !== null) window.clearTimeout(backupTimerRef.current)
+    }
   }, [])
 
   useEffect(() => {
@@ -70,6 +92,7 @@ export function useTodos() {
             () => reportSave(false)
           )
         }
+        if (backup) setBackupAvailable(true)
         // 数据完整性检测：主库为空但存在非空备份（疑似数据丢失）→ 标记，由 App 提示恢复
         if (normalized.length === 0 && backup) {
           const parsed = parseRosterImport(backup)
@@ -79,19 +102,26 @@ export function useTodos() {
           }
         }
         setLoaded(true)
+      },
+      () => {
+        // 读取失败（隐私模式/配额/损坏）：不再卡在加载态，由 App 显示错误提示
+        setInitError(true)
+        setLoaded(true)
       }
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 从库内备份恢复（RosterExport 格式，走 replaceData 覆盖）
-  const restoreFromBackup = useCallback(() => {
-    const raw = pendingBackupRef.current
+  // 从库内备份恢复（RosterExport 格式，走 replaceData 覆盖）。
+  // 支持两种触发：启动时 dataLossDetected（pendingBackupRef 已存）与运行中菜单「从备份恢复」（回库读取）。
+  const restoreFromBackup = useCallback(async () => {
+    const raw = pendingBackupRef.current ?? (await getBackup())
     if (!raw) return
     const parsed = parseRosterImport(raw)
     if (!parsed) return
     pendingBackupRef.current = null
     setDataLossDetected(false)
+    setBackupAvailable(false)
     void replaceData(parsed)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -399,9 +429,24 @@ export function useTodos() {
   }, [lists, activeListId])
 
   const replaceData = useCallback((data: RosterExport) => {
+    // 导入前先把当前数据快照进备份：误导入后可通过「从备份恢复」找回。
+    // 导入成功后不再把导入内容覆写备份（保留快照直到下一次正常写操作）。
+    const snapshot: RosterExport = {
+      app: 'ROSTER',
+      version: 2,
+      exportedAt: Date.now(),
+      activeListId,
+      lists: lists.map((l) => ({
+        ...l,
+        tasks: l.tasks.map((t) => ({ ...t })),
+      })),
+    }
+    pendingBackupRef.current = JSON.stringify(snapshot)
+    persistBackup(snapshot)
+    // 导入数据归一化 + 重排分组：v1 旧格式/手工 JSON 的任务顺序不保证 进行中→待办→已完成，导入即修正
     const importedLists = data.lists.map((l) => ({
       ...l,
-      tasks: l.tasks.map(normalizeTask),
+      tasks: sortTasks(l.tasks.map(normalizeTask)),
     }))
     setLists(importedLists)
     const validActive = importedLists.some((l) => l.id === data.activeListId)
@@ -411,19 +456,14 @@ export function useTodos() {
         : ''
     setActiveListId(validActive)
     Promise.all([saveAllLists(importedLists), saveActiveListId(validActive)]).then(
-      () => {
-        reportSave(true)
-        persistBackup({
-          app: 'ROSTER',
-          version: 2,
-          exportedAt: Date.now(),
-          activeListId: validActive,
-          lists: importedLists,
-        })
-      },
+      () => reportSave(true),
       () => reportSave(false)
     )
-  }, [persistBackup, reportSave])
+    // 导入了空数据而导入前有数据（最危险的误操作）：立即提示恢复，复用 dataLossDetected 横幅
+    if (importedLists.length === 0 && snapshot.lists.length > 0) {
+      setDataLossDetected(true)
+    }
+  }, [activeListId, lists, persistBackup, reportSave])
 
   return {
     lists,
@@ -432,7 +472,9 @@ export function useTodos() {
     title,
     loaded,
     saveError,
+    initError,
     dataLossDetected,
+    backupAvailable,
     restoreFromBackup,
     dismissDataLoss,
     addList,

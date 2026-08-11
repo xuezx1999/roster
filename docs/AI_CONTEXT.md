@@ -19,7 +19,7 @@ Vite 6 + React 19 + TypeScript 5.6 + Tailwind CSS v4（`@tailwindcss/vite`）+ @
 ```
 src/
   main.tsx              入口 + PWA SW 注册（仅 PROD）
-  App.tsx               唯一页面，承载交互编排 + 响应式双布局（861 行，最大文件）
+  App.tsx               唯一页面，承载交互编排 + 响应式双布局（931 行，最大文件）
   types.ts              Task / TodoList / RosterExport 类型定义
   db.ts                 IndexedDB 层 + v1→v2 数据迁移
   utils.ts              generateId() + downloadJSON() + parseRosterImport()
@@ -83,11 +83,11 @@ IndexedDB：库名 `roster-db`，版本 `2`，两个 store —— `lists`（keyP
 
 ## 当前项目状态（2026-08-11）
 
-- `tsc -b` ✅ 通过；`npm test`（Vitest 纯函数）✅ 通过；`npm run lint`（oxlint）✅ 通过。
-- 有 git 仓库（main 分支）、无 CI。
-- `package.json` version：`0.8.7`。
+- `tsc -b` ✅ 通过；`npm test`（Vitest 纯函数，13 用例）✅ 通过；`npm run lint`（oxlint）✅ 通过。
+- 有 git 仓库（main 分支）、GitHub Actions CI（push/PR 跑 tsc/lint/test）、无 CI 失败记录。
+- `package.json` version：`0.8.8`。
 - README.md 已重写为面向用户的项目介绍。
-- 已知技术债：WebDAV 跨设备同步未做（需外部凭据）；`updateList` 在 updater 内调副作用为既有设计（幂等，保留）。（Cloudflare Pages 已通过 Git 集成部署，push 触发自动构建。）
+- 已知技术债：WebDAV 跨设备同步未做（需外部凭据）；`updateList` 在 updater 内调副作用为既有设计（幂等，保留）；`.workbuddy/` 已 gitignore（个人记忆不入库）。（Cloudflare Pages 已通过 Git 集成部署，push 触发自动构建。）
 
 ## 快速上手命令
 

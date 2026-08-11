@@ -49,8 +49,8 @@ PWA 的 `virtual:pwa-register` 模块在**非 PROD 下不存在**——`main.tsx
 配置在 `vite.config.ts`：
 - `registerType: 'autoUpdate'`：新版本自动激活 SW，无用户提示。
 - manifest：standalone、portrait、`#EFEFEF` 主题色，图标 192/512 + maskable。
-- workbox：预缓存 `**/*.{js,css,html,ico,png,svg}`；Google Fonts（`fonts.googleapis.com` / `fonts.gstatic.com`）CacheFirst，缓存名 `google-fonts-cache` / `gstatic-fonts-cache`，**1 年过期**。
-- ⚠️ 改了字体相关配置（新增字体 URL 或 font-family）后，`dist` 里的旧字体缓存不会自动失效，测试时注意 `Cache-First` 会命旧。
+- workbox：预缓存 `**/*.{js,css,html,ico,png,svg,woff2}`。
+- 字体：**自托管**（`public/fonts/ibm-plex-mono-{400,500}.woff2`，latin 子集 ~10KB/字重），`index.css` `@font-face` + `font-display: swap`。无外部 CDN 运行时缓存（v0.8.8 起；此前 Google Fonts CacheFirst 1 年已移除，解决了改字体旧缓存命中问题）。若换字体，直接替换 `public/fonts/` 下的 woff2 并保持文件名即可（预缓存 hash 会自动更新）。
 
 **验证 PWA**：
 - `npm run build && npm run preview`，打开 DevTools → Application → Service Workers / Cache Storage。
@@ -65,8 +65,8 @@ PWA 的 `virtual:pwa-register` 模块在**非 PROD 下不存在**——`main.tsx
    - **三态**：单击→进行中（○）、双击→完成（●）、再点→取消。
    - **长按**：450ms 进入 actionMode，出现拖拽柄与底部操作栏，可删除/拖拽排序。
    - **分页**：>1 列表横向滑动线性切换（首尾不可回绕），标题/底部栏跟随；单列表不产生横向滑动；空列表显示 `NO LISTS` + 底部 `[+] ADD`。
-   - **菜单**：清除/导出/导入（含 v1 旧格式导入）两级确认；点外部关闭。
-   - **数据持久化**：刷新页面数据仍在；IndexedDB（DevTools → Application）里 `roster-db` 的 lists/meta 正确。
+   - **菜单**：清除/导出/导入（含 v1 旧格式导入）两级确认；点外部关闭；「从备份恢复」（有备份时显示，点击恢复上次快照）。
+   - **数据持久化**：刷新页面数据仍在；IndexedDB（DevTools → Application）里 `roster-db` 的 lists/meta 正确；导入空文件后应出现「检测到数据可能丢失」横幅，点「恢复备份」找回导入前数据。
    - **PWA（PROD）**：SW 注册、离线可打开。
 
 ## 8. 数据格式速查（导入导出手工构造用）

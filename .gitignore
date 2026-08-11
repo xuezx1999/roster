@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Personal workspace memory (may contain private paths/habits; never commit)
+.workbuddy/

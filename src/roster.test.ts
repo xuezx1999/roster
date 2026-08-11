@@ -106,4 +106,28 @@ describe('parseRosterImport', () => {
     expect(parsed).not.toBeNull()
     expect(parsed?.lists[0].tasks).toEqual([])
   })
+
+  it('拒绝列表 id 重复的 v2（落库会互相覆盖，state 与 DB 失同步）', () => {
+    const dup = {
+      app: 'ROSTER',
+      lists: [
+        { id: 'l1', title: 'A', tasks: [] },
+        { id: 'l1', title: 'B', tasks: [] },
+      ],
+    }
+    expect(parseRosterImport(JSON.stringify(dup))).toBeNull()
+  })
+
+  it('拒绝列表内任务 id 重复的 v2', () => {
+    const dup = {
+      app: 'ROSTER',
+      lists: [{ id: 'l1', title: 'X', tasks: [{ id: 't1' }, { id: 't1' }] }],
+    }
+    expect(parseRosterImport(JSON.stringify(dup))).toBeNull()
+  })
+
+  it('拒绝任务缺 id 的 v2', () => {
+    const noId = { app: 'ROSTER', lists: [{ id: 'l1', title: 'X', tasks: [{ content: 'no-id' }] }] }
+    expect(parseRosterImport(JSON.stringify(noId))).toBeNull()
+  })
 })

@@ -6,6 +6,34 @@
 
 ---
 
+## [0.8.8] 2026-08-11 — 第二轮上线后检查修复：删除失步/导入备份/IME/初始化兜底 + 字体自托管 + 隐私清除
+
+### 修复
+- **桌面删除列表后视图失步（P1）**：删除「活动列表左侧」的列表（列菜单删除或清除任务自动删列）后，`lists` 数组变化但 `activeListId` 未变，同步 effect 因 `prevActiveListId === activeListId` 早退，导致 `currentIndex` 陈旧、活动列被滚出视口（显示成右侧另一个列表）。改为以 `activeIndexRef` 检测索引漂移并立即重定位（auto，不打断动画）。同时覆盖 `updateList` 自动删空列表路径。
+- **导入覆盖库内备份（P1/P2）**：`replaceData` 此前导入成功后把导入内容覆写进 `meta['backup']`，误导入（形状合法但内容错误，如空文件）后主数据与备份同时丢失、不可恢复。改为：导入前先快照当前数据进备份（导入成功后不再覆写）；导入空数据而原数据非空时自动触发「检测到数据可能丢失」横幅；菜单（移动端 + 桌面列）新增「[↩] 恢复备份」入口（`backupAvailable` 控制显示，`restoreFromBackup` 支持运行中回库读取）。
+- **中文输入法（IME）组合回车误提交（P2）**：`AddTask` / `TaskItem` / `EditableTitle` 三处 `handleKeyDown` 未判 `e.nativeEvent.isComposing`，拼音选词按 Enter 会误提交半截文本。已统一加守卫。
+- **初始化无错误兜底（P2）**：`useTodos` 初始化 `Promise.all` 无 catch，IndexedDB 打开失败（隐私模式/配额）会永久卡在 `...`。加 catch → `initError` 置位，App 显示「[!] 无法读取本地存储 — 点击重试」。
+- **导入不重新排序（P3）**：`replaceData` 现对每个列表 `sortTasks`（v1 旧格式/手工 JSON 导入后任务按 进行中→待办→已完成 分组）。
+- **导入 id 重复不校验（P3）**：`parseRosterImport` 增加列表 id / 任务 id 唯一性与任务 id 存在性校验，重复或缺失一律拒收（否则落库 put 互相覆盖、state 与 DB 失同步）。
+
+### 优化
+- **滚动性能**：列宽/左 padding 缓存进 `metricsRef`（`offsetWidth`/`getComputedStyle` 读取强制同步布局，滚动事件不再每次重算；窗口 resize 时失效重算）。
+- **键盘避让重渲染**：`kbOffset` state 改为 `bottomBarRef` 直接改 `style.bottom`，`visualViewport` 滚动不再触发整个 App 重渲染。
+- **备份写放大**：`persistBackup` 500ms 防抖，连续操作只写最后一次全量快照（主数据 `saveList` 仍立即写，备份仅二次保险）。
+- **字体自托管**：IBM Plex Mono 400/500（latin 子集，~10KB/字重）下载至 `public/fonts/`，`index.css` 加 `@font-face`；移除 Google Fonts link/preconnect 与 workbox 字体 runtimeCaching（解决境内 CDN 访问不稳 + D9 的 365 天旧字体缓存问题），`globPatterns` 增加 `woff2` 预缓存。
+- **隐私清除**：`.workbuddy/` 加入 `.gitignore` 并 `git rm --cached`；该目录下 `memory/2026-08-11.md`（含本机绝对路径/个人习惯）此前已误提交至公开仓库，本次用 `git filter-branch` 从**全部历史**中移除并 force push（见下方「安全备注」）。
+
+### 测试
+- `parseRosterImport` 新增 3 用例：列表 id 重复拒收、任务 id 重复拒收、任务缺 id 拒收（10 → 13）。
+
+### 安全备注
+- ⚠️ 仓库 `xuezx1999/roster` 为 **public**，`.workbuddy/memory/2026-08-11.md` 曾出现在历史提交中。本次已重写历史清除该文件并强制推送。**若任何协作者克隆过旧历史，请让其重新 clone 或执行 `git fetch && git rebase`；GitHub 侧旧 commit 仍可能被缓存访问，但已无法通过默认分支获取。** 建议：后续个人记忆文件一律放 `.workbuddy/`（已 ignore）。
+
+### 文档同步
+- package.json / package-lock.json 版本 0.8.7 → 0.8.8；AI_CONTEXT.md（测试用例数 8→13、App.tsx 行数、版本引用）；DEVELOPMENT.md（PWA 字体缓存移除、验证清单补充）；DECISIONS.md（D9 现状/代价更新）；DESIGN_SYSTEM.md（字体来源自托管说明）。
+
+---
+
 ## [0.8.7] 2026-08-11 — 上线后检查（二轮）：导入健壮性 + 暗色横幅 + 工程化
 
 ### 修复
@@ -502,7 +530,7 @@
 
 ## 当前版本
 
-- `package.json` version：`0.8.7`。
+- `package.json` version：`0.8.8`。
 - IndexedDB `roster-db` 版本：`2`。
 - 导出格式 `RosterExport.version`：`2`。
 - 项目状态检查日期：2026-08-11。

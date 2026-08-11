@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+/* 自托管 IBM Plex Mono（latin 子集，~10KB/字重）：避免依赖 Google Fonts CDN（境内访问不稳），
+   同时消除 PWA 字体 CacheFirst 365 天旧缓存问题（v0.8.8 起）。中文/符号回退系统字体。 */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-500.woff2') format('woff2');
+}
+
 @theme {
   --font-mono: 'IBM Plex Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
   /* 设计 token（4 色）：亮色为默认值，暗色由 html[data-theme='dark'] 覆盖同名变量 */

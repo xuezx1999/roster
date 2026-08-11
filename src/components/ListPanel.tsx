@@ -31,6 +31,8 @@ interface ListPanelProps {
   onSaveOrder: () => void
   onExport: () => RosterExport
   onReplace: (data: RosterExport) => void
+  backupAvailable: boolean
+  onRestoreFromBackup: () => void
 }
 
 type ConfirmAction = 'clear' | 'export' | 'import' | 'delete' | null
@@ -62,6 +64,8 @@ export function ListPanel({
   onSaveOrder,
   onExport,
   onReplace,
+  backupAvailable,
+  onRestoreFromBackup,
 }: ListPanelProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
@@ -269,6 +273,24 @@ export function ListPanel({
                       </motion.button>
                     )}
                   </AnimatePresence>
+                )}
+
+                {backupAvailable && (
+                  <motion.button
+                    key="restore-backup"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    onClick={() => {
+                      onRestoreFromBackup()
+                      setMenuOpen(false)
+                      setConfirmAction(null)
+                    }}
+                    className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
+                  >
+                    <Bracket>↩</Bracket> 恢复备份
+                  </motion.button>
                 )}
 
                 <AnimatePresence mode="wait" initial={false}>

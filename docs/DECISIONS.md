@@ -77,12 +77,12 @@
 
 ---
 
-## D9. PWA：autoUpdate + Google Fonts CacheFirst（1 年）
+## D9. PWA：autoUpdate + 字体自托管（2026-08-11 由 CDN 缓存改为自托管）
 
-**现状**：`registerType: 'autoUpdate'`；字体走运行时 CacheFirst 缓存 365 天。
-**理由**：个人工具型应用，无需打扰用户升级；字体缓存避免重复下载。
-**代价**：字体缓存 1 年，改字体后旧缓存仍命中（需手动清）；autoUpdate 无版本说明，极端情况下新旧资源不匹配。
-**何时可改**：改为 `prompt` 需实现更新提示 UI，通常不值得；若换字体，把缓存有效期缩短或换自托管字体。
+**现状**：`registerType: 'autoUpdate'`；字体自托管于 `public/fonts/`（IBM Plex Mono 400/500 latin 子集，~10KB/字重），随 SW 预缓存（hash 更新自动失效），无外部运行时缓存（v0.8.8 起）。
+**理由**：个人工具型应用，无需打扰用户升级；字体自托管解决 Google Fonts 境内访问不稳 + 旧方案 365 天 CacheFirst 旧缓存命中问题（改字体后无需手动清缓存）。
+**代价**：自托管仅含 latin 子集，`≡`/`◐`/`●` 等非 latin 符号仍回退系统字体（与 CDN 方案行为一致）；换字体需手动替换 woff2 文件。
+**何时可改**：改为 `prompt` 需实现更新提示 UI，通常不值得；若换字体，替换 `public/fonts/` 下文件并保持文件名即可。
 
 ---
 

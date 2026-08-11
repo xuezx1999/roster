@@ -22,19 +22,15 @@ import { downloadJSON, parseRosterImport } from './utils'
 // 当前列表列宽（含桌面端间距与分隔线，即 snap/翻页步进）：桌面每列 425px（400 内容 + 24 间距 + 1px 分隔线），移动端整屏宽
 const getColWidth = (el: HTMLElement) => el.querySelector('section')?.offsetWidth ?? el.clientWidth
 
-// 滚动目标位置：第 idx 列左缘对齐视口（内容盒）左缘 = 容器左 padding + idx × 列宽
-const getScrollTarget = (el: HTMLElement, idx: number) => {
-  const padLeft = parseFloat(getComputedStyle(el).paddingLeft) || 0
-  return padLeft + idx * getColWidth(el)
-}
-
 function App() {
   const {
     lists,
     activeListId,
     loaded,
     saveError,
+    initError,
     dataLossDetected,
+    backupAvailable,
     restoreFromBackup,
     dismissDataLoss,
     addList,
@@ -85,14 +81,32 @@ function App() {
       .querySelector('meta[name="theme-color"]')
       ?.setAttribute('content', next === 'dark' ? '#1A1A1A' : '#EFEFEF')
   }
-  // 键盘弹出高度：iOS Safari 的 fixed 元素不会自动让位键盘，需按 visualViewport 高度差抬起底部栏
-  const [kbOffset, setKbOffset] = useState(0)
+  // 键盘弹出高度：iOS Safari 的 fixed 元素不会自动让位键盘，需按 visualViewport 高度差抬起底部栏。
+  // 用 ref 直接改 style.bottom 而非 state：避免每次键盘滚动触发整个 App 重渲染
+  const bottomBarRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const pendingImportRef = useRef<RosterExport | null>(null)
   const addTaskRef = useRef<AddTaskHandle>(null)
   const scrollerRef = useRef<HTMLDivElement>(null)
   const activeIndexRef = useRef(0)
+  // 列宽/左 padding 缓存：offsetWidth 与 getComputedStyle 读取会强制同步布局，
+  // 滚动事件高频触发时只读一次、resize 时失效重算
+  const metricsRef = useRef<{ col: number; pad: number } | null>(null)
+  const getMetrics = (el: HTMLElement) => {
+    if (!metricsRef.current) {
+      metricsRef.current = {
+        col: getColWidth(el),
+        pad: parseFloat(getComputedStyle(el).paddingLeft) || 0,
+      }
+    }
+    return metricsRef.current
+  }
+  // 滚动目标位置：第 idx 列左缘对齐视口（内容盒）左缘 = 容器左 padding + idx × 列宽
+  const getScrollTarget = (el: HTMLElement, idx: number) => {
+    const m = getMetrics(el)
+    return m.pad + idx * m.col
+  }
   // 滚动驱动的 activeListId 变化标记：翻页时位置已由原生滚动就位，
   // 若再触发 effect 的 smooth scrollTo 会打断浏览器吸附动画，造成各页入场速度不一致
   const scrollDrivenRef = useRef(false)
@@ -114,7 +128,9 @@ function App() {
     const vv = window.visualViewport
     if (!vv) return
     const update = () => {
-      setKbOffset(Math.max(0, window.innerHeight - vv.height))
+      const offset = Math.max(0, window.innerHeight - vv.height)
+      // 直接改 DOM 样式，避免 state 更新触发全树重渲染
+      if (bottomBarRef.current) bottomBarRef.current.style.bottom = `${offset}px`
     }
     vv.addEventListener('resize', update)
     vv.addEventListener('scroll', update)
@@ -123,6 +139,15 @@ function App() {
       vv.removeEventListener('resize', update)
       vv.removeEventListener('scroll', update)
     }
+  }, [])
+
+  // 窗口尺寸变化（旋转/缩放/分屏）时列宽失效，下次读取重算
+  useEffect(() => {
+    const invalidate = () => {
+      metricsRef.current = null
+    }
+    window.addEventListener('resize', invalidate)
+    return () => window.removeEventListener('resize', invalidate)
   }, [])
 
   const sensors = useSensors(
@@ -137,7 +162,8 @@ function App() {
   const handleScroll = useCallback(() => {
     const el = scrollerRef.current
     if (!el) return
-    const idx = Math.round(el.scrollLeft / getColWidth(el))
+    const m = getMetrics(el)
+    const idx = Math.round(el.scrollLeft / m.col)
     if (idx !== activeIndexRef.current) {
       activeIndexRef.current = idx
       setCurrentIndex(idx)
@@ -179,16 +205,25 @@ function App() {
       prevActiveListId.current = activeListId
       return
     }
-    if (prevActiveListId.current === activeListId) return
-    prevActiveListId.current = activeListId
-    if (!activeListId) return
     const idx = lists.findIndex((l) => l.id === activeListId)
     if (idx === -1) return
     const el = scrollerRef.current
-    if (el) {
-      const target = getScrollTarget(el, idx)
-      el.scrollTo({ left: target, behavior: 'smooth' })
+    if (!el) return
+    const target = getScrollTarget(el, idx)
+    // activeListId 未变但列表集合变化（删除左侧列表/导入导致 active 列移位）：
+    // 用 activeIndexRef 检测索引漂移，立即定位（auto，不打断动画），避免视图停留在错误列
+    if (prevActiveListId.current === activeListId) {
+      if (activeIndexRef.current !== idx) {
+        activeIndexRef.current = idx
+        setCurrentIndex(idx)
+        setActionModeId(null)
+        el.scrollLeft = target
+      }
+      return
     }
+    prevActiveListId.current = activeListId
+    if (!activeListId) return
+    el.scrollTo({ left: target, behavior: 'smooth' })
     activeIndexRef.current = idx
     setCurrentIndex(idx)
     setActionModeId(null)
@@ -204,9 +239,9 @@ function App() {
       const el = scrollerRef.current
       if (!el || lists.length <= 1) return
       e.preventDefault()
-      const col = getColWidth(el)
-      const perScreen = Math.max(1, Math.floor(el.clientWidth / col))
-      const idx = Math.round((el.scrollLeft - (parseFloat(getComputedStyle(el).paddingLeft) || 0)) / col)
+      const m = getMetrics(el)
+      const perScreen = Math.max(1, Math.floor(el.clientWidth / m.col))
+      const idx = Math.round((el.scrollLeft - m.pad) / m.col)
       const next =
         e.key === 'ArrowRight'
           ? Math.min(idx + perScreen, lists.length - 1)
@@ -372,7 +407,16 @@ function App() {
         className="min-h-svh flex items-center justify-center"
         style={{ backgroundColor: 'var(--color-bg)' }}
       >
-        <span className="font-mono text-[16px] text-mute">...</span>
+        {initError ? (
+          <button
+            onClick={() => window.location.reload()}
+            className="font-mono text-[16px] leading-[1.6] text-danger cursor-pointer select-none"
+          >
+            [!] 无法读取本地存储 — 点击重试
+          </button>
+        ) : (
+          <span className="font-mono text-[16px] text-mute">...</span>
+        )}
       </div>
     )
   }
@@ -581,6 +625,24 @@ function App() {
                     )}
                   </AnimatePresence>
 
+                  {backupAvailable && (
+                    <motion.button
+                      key="restore-backup"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      onClick={() => {
+                        void restoreFromBackup()
+                        setMenuOpen(false)
+                        setConfirmAction(null)
+                      }}
+                      className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
+                    >
+                      <Bracket>↩</Bracket> 恢复备份
+                    </motion.button>
+                  )}
+
                   <AnimatePresence mode="wait" initial={false}>
                     {confirmAction === 'export' ? (
                       <motion.button
@@ -714,6 +776,8 @@ function App() {
                   onSaveOrder={handleSaveOrder}
                   onExport={exportData}
                   onReplace={replaceData}
+                  backupAvailable={backupAvailable}
+                  onRestoreFromBackup={() => void restoreFromBackup()}
                 />
               </div>
 
@@ -791,9 +855,9 @@ function App() {
 
       {/* Floating bottom bar（移动端专属浮层；桌面多列由各列面板自带底栏） */}
       <div
+        ref={bottomBarRef}
         className="fixed bottom-0 left-0 right-0 z-20 md:hidden"
         style={{
-          bottom: kbOffset,
           paddingTop: '24px',
           paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)',
           paddingLeft: 'calc(env(safe-area-inset-left) + 24px)',

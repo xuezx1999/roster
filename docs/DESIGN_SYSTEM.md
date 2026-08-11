@@ -38,7 +38,7 @@
 ```
 'IBM Plex Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace
 ```
-- 英文字形用 IBM Plex Mono（Google Fonts CDN 加载，PWA 有 CacheFirst 缓存）。
+- 英文字形用 IBM Plex Mono（**自托管** `public/fonts/ibm-plex-mono-{400,500}.woff2`，latin 子集，随 PWA 预缓存；换字体直接替换 woff2 文件）。
 - 中文无等宽字形，回退 PingFang/苹方。
 - `EditableTitle.tsx` 与 `index.css` 各声明了一份相同栈，改动需同步。
 
