@@ -56,8 +56,19 @@ export function parseRosterImport(text: string): RosterExport | null {
     }
   }
   if (obj.app !== 'ROSTER') return null
-  if (Array.isArray(obj.lists)) {
-    return obj as unknown as RosterExport
-  }
-  return null
+  if (!Array.isArray(obj.lists)) return null
+  // 校验每个列表结构：replaceData 会直接 `l.tasks.map(...)`，缺字段（tasks 非数组/缺失）会抛 TypeError。
+  // 这里提前拦截畸形文件，避免导入流程崩溃、菜单卡在确认态。
+  const lists = obj.lists
+  const shapeOk = lists.every((l) => {
+    if (!l || typeof l !== 'object') return false
+    const list = l as Record<string, unknown>
+    return (
+      typeof list.id === 'string' &&
+      typeof list.title === 'string' &&
+      Array.isArray(list.tasks)
+    )
+  })
+  if (!shapeOk) return null
+  return obj as unknown as RosterExport
 }

@@ -92,4 +92,18 @@ describe('parseRosterImport', () => {
     expect(parseRosterImport(JSON.stringify({ app: 'ROSTER', lists: 'nope' }))).toBeNull()
     expect(parseRosterImport(JSON.stringify({ app: 'ROSTER' }))).toBeNull()
   })
+
+  it('拒绝列表结构残缺的 v2（tasks 缺失/非数组/元素非对象）', () => {
+    expect(parseRosterImport(JSON.stringify({ app: 'ROSTER', lists: [{ id: 'l1', title: 'X' }] }))).toBeNull()
+    expect(
+      parseRosterImport(JSON.stringify({ app: 'ROSTER', lists: [{ id: 'l1', title: 'X', tasks: 'no' }] }))
+    ).toBeNull()
+    expect(parseRosterImport(JSON.stringify({ app: 'ROSTER', lists: ['not-an-object'] }))).toBeNull()
+  })
+
+  it('接受结构完整的 v2（含空 tasks）', () => {
+    const parsed = parseRosterImport(JSON.stringify({ app: 'ROSTER', lists: [{ id: 'l1', title: 'X', tasks: [] }] }))
+    expect(parsed).not.toBeNull()
+    expect(parsed?.lists[0].tasks).toEqual([])
+  })
 })

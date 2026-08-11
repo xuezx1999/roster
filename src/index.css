@@ -7,6 +7,8 @@
   --color-ink: #1A1A1A;
   --color-mute: #8C8C8C;
   --color-danger: #B3261E;
+  /* 危险底色上的反白文字：亮/暗色均为白字（text-bg 在暗色会翻转成黑字，故单独定义） */
+  --color-on-danger: #FFFFFF;
 }
 
 /* 暗色主题：覆盖同名 token（text-bg / bg-ink / text-danger 等工具类基于 var() 自动跟随） */

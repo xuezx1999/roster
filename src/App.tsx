@@ -306,12 +306,18 @@ function App() {
   }
 
   const handleConfirmImport = () => {
-    if (pendingImportRef.current) {
-      replaceData(pendingImportRef.current)
-    }
+    const data = pendingImportRef.current
+    if (!data) return
     pendingImportRef.current = null
-    setConfirmAction(null)
-    setMenuOpen(false)
+    try {
+      replaceData(data)
+      setConfirmAction(null)
+      setMenuOpen(false)
+    } catch {
+      // 畸形数据兜底：parseRosterImport 已校验结构，这里再兜一层，避免菜单卡在确认态
+      setImportError(true)
+      setConfirmAction(null)
+    }
   }
 
   // 全局禁用右键系统菜单（APP 沉浸感）：仅编辑输入框保留系统菜单（复制粘贴）；
@@ -386,7 +392,7 @@ function App() {
           className="fixed left-0 right-0 z-50 flex justify-center pointer-events-none"
           style={{ top: 'calc(env(safe-area-inset-top) + 18px)' }}
         >
-          <span className="font-mono text-[14px] leading-[1.4] text-bg bg-danger px-4 py-2 select-none">
+          <span className="font-mono text-[14px] leading-[1.4] text-on-danger bg-danger px-4 py-2 select-none">
             [!] 保存失败
           </span>
         </div>

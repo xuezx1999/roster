@@ -85,7 +85,7 @@ IndexedDB：库名 `roster-db`，版本 `2`，两个 store —— `lists`（keyP
 
 - `tsc -b` ✅ 通过；`npm test`（Vitest 纯函数）✅ 通过；`npm run lint`（oxlint）✅ 通过。
 - 有 git 仓库（main 分支）、无 CI。
-- `package.json` version：`0.8.4`。
+- `package.json` version：`0.8.7`。
 - README.md 已重写为面向用户的项目介绍。
 - 已知技术债：WebDAV 跨设备同步未做（需外部凭据）；`updateList` 在 updater 内调副作用为既有设计（幂等，保留）。（Cloudflare Pages 已通过 Git 集成部署，push 触发自动构建。）
 

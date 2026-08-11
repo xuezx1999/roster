@@ -115,12 +115,18 @@ export function ListPanel({
   }
 
   const handleConfirmImport = () => {
-    if (pendingImportRef.current) {
-      onReplace(pendingImportRef.current)
-    }
+    const data = pendingImportRef.current
+    if (!data) return
     pendingImportRef.current = null
-    setConfirmAction(null)
-    setMenuOpen(false)
+    try {
+      onReplace(data)
+      setConfirmAction(null)
+      setMenuOpen(false)
+    } catch {
+      // 畸形数据兜底：parseRosterImport 已校验结构，这里再兜一层，避免菜单卡在确认态
+      setImportError(true)
+      setConfirmAction(null)
+    }
   }
 
   const handleBlankDoubleClick = (e: React.MouseEvent) => {

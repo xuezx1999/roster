@@ -70,6 +70,15 @@ export function TaskItem({
     }
   }, [isDragging, cancelMouseLongPress])
 
+  // 卸载时清理所有定时器，避免组件已卸载后 300ms/450ms 回调仍触发（轻微泄漏）
+  useEffect(() => {
+    return () => {
+      if (clickTimerRef.current !== null) window.clearTimeout(clickTimerRef.current)
+      if (longPressTimerRef.current !== null) window.clearTimeout(longPressTimerRef.current)
+      if (mouseLongPressTimerRef.current !== null) window.clearTimeout(mouseLongPressTimerRef.current)
+    }
+  }, [])
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition: isDragging ? transition : undefined,

@@ -6,6 +6,20 @@
 
 ---
 
+## [0.8.7] 2026-08-11 — 上线后检查（二轮）：导入健壮性 + 暗色横幅 + 工程化
+
+### 修复
+- **导入崩溃兜底**：`parseRosterImport` 对 v2 仅校验 `app`/`lists` 数组，不校验每个列表有 `tasks` 数组；`replaceData` 直接 `l.tasks.map(...)` 遇残缺结构抛 `TypeError`，且 `handleConfirmImport` 无 try/catch → 导入流程崩溃、菜单卡确认态。改为：在 `parseRosterImport` 内校验每个 list 含 `id`(string)/`title`(string)/`tasks`(array)，残缺即返回 null；`App` 与 `ListPanel` 的 `handleConfirmImport` 包 try/catch，异常回退到「无效文件」提示。补相应测试用例（残缺 v2 拒收 / 完整空 tasks 接受）。
+- **暗色模式「保存失败」横幅对比度**：原用 `text-bg bg-danger`，暗色下 `text-bg`=#1A1A1A（黑字红底），与亮色「红底白字」意图不一致。新增 token `--color-on-danger: #FFFFFF`，横幅改 `text-on-danger`，亮/暗均白字红底。
+
+### 工程化
+- **GitHub Actions CI**：新增 `.github/workflows/ci.yml`，push/PR 至 main 时跑 `npx tsc -b && npm run lint && npm test`（Node 20），避免再次"本地通过、线上漏测"。
+
+### 文档同步
+- 版本号对齐：package.json `0.8.4 → 0.8.7`；AI_CONTEXT.md 版本引用同步；本文件「当前版本」块更新。
+
+---
+
 ## [0.8.6] 2026-08-11 — 上线后检查：修复移动端 v1 导入 + 同步过时文档
 
 ### 修复
@@ -488,7 +502,7 @@
 
 ## 当前版本
 
-- `package.json` version：`0.8.4`。
+- `package.json` version：`0.8.7`。
 - IndexedDB `roster-db` 版本：`2`。
 - 导出格式 `RosterExport.version`：`2`。
 - 项目状态检查日期：2026-08-11。
@@ -555,6 +569,6 @@
    新增/变更/修复：
    - ...
    ```
-2. 版本号从 `0.1.0` 起自定（当前 `0.8.4`）。
+2. 版本号从 `0.1.0` 起自定（当前 `0.8.7`）。
 3. 若改动涉及数据 schema：**必须**同时更新 `db.ts` 的 `DB_VERSION` 与本文档，并在 DECISIONS.md 记录。
 4. 若项目某日接入 git，将本文件条目与 commit 关联，并删除"结构推断"标注。
