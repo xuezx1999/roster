@@ -15,6 +15,17 @@
 
 ---
 
+## [0.1.0] 2026-08-11 — 部署工程化：Cloudflare Pages 支持
+
+### 新增
+- `public/_redirects`：`/* /index.html 200` SPA 回退，防止深链/刷新 404。
+- `wrangler.toml`：Pages 项目配置（`pages_build_output_dir = "./dist"`），兼容 CLI 手动部署。
+
+### 变更
+- `docs/DEVELOPMENT.md` §11 记录部署流程与自定义域名配置。
+
+---
+
 ## v2（当前）
 
 **结构推断时间范围**：2026-08（文件时间戳集中于 08-11）。

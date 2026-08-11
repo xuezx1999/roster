@@ -106,3 +106,12 @@ Error: Cannot find module '@oxlint/binding-darwin-universal'
 - 新增依赖前确认必要（项目依赖极少：react、idb、dnd-kit、framer-motion、tailwind、pwa）。
 - 不要引入测试框架前先问是否值得——项目当前零测试。
 - 修改 `db.ts` 的 schema 必须**递增 DB_VERSION** 并写 upgrade 迁移分支，否则老用户数据直接丢失。
+
+## 11. 部署（Cloudflare Pages）
+
+- 推荐方式：Pages **Git 集成**（连 GitHub 仓库 `xuezx1999/roster`），Build command `npm run build`，Output directory `dist`，Node.js version `20`（可用 env `NODE_VERSION=20`）。
+- 已提交 `public/_redirects`（`/* /index.html 200` SPA 回退，避免深链/刷新 404）与 `wrangler.toml`（`pages_build_output_dir = "./dist"`，兼容 CLI 手动部署：`npx wrangler pages deploy dist --project-name roster`）。
+- 无需后端、无需环境变量；数据在浏览器 IndexedDB。
+- 部署后验证：首页可开、SW 注册日志、离线可访问、深链刷新返回 200。
+- 自定义域名：Pages 项目 → Custom domains → 添加 `roster.xuezhixiang.fun`，由 Cloudflare DNS 自动托管（CNAME 指向 pages.dev，代理已开则自动带 HTTPS）。
+- 每次 `git push` 触发自动构建；`vite-plugin-pwa` 的 hash 预缓存保证用户自动更新到新版本。
