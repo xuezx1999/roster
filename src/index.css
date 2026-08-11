@@ -2,18 +2,31 @@
 
 @theme {
   --font-mono: 'IBM Plex Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
+  /* 设计 token（4 色）：亮色为默认值，暗色由 html[data-theme='dark'] 覆盖同名变量 */
+  --color-bg: #EFEFEF;
+  --color-ink: #1A1A1A;
+  --color-mute: #8C8C8C;
+  --color-danger: #B3261E;
+}
+
+/* 暗色主题：覆盖同名 token（text-bg / bg-ink / text-danger 等工具类基于 var() 自动跟随） */
+[data-theme='dark'] {
+  --color-bg: #1A1A1A;
+  --color-ink: #EFEFEF;
+  --color-mute: #9C9C9C;
+  --color-danger: #E05B50;
 }
 
 html {
-  background-color: #F2F2F2;
+  background-color: var(--color-bg);
   -webkit-tap-highlight-color: transparent;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: #F2F2F2;
-  color: #1A1A1A;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
   font-family: 'IBM Plex Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
   font-size: 16px;
   line-height: 1.6;
@@ -35,6 +48,6 @@ button {
 }
 
 input::placeholder {
-  color: #8C8C8C;
+  color: var(--color-mute);
   opacity: 1;
 }

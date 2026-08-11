@@ -21,7 +21,7 @@
 
 - **任务最小化**：先定位，再改动。不"顺手"重构无关代码（尤其 db.ts 迁移、App.tsx 手势编排、样式原子类）。
 - **遵守现有模式**：
-  - 数据变更一律走 `useTodos` 的 `updateActiveList`（乐观更新 + fire-and-forget 落库），禁止直接调 idb 读写绕过 state。
+  - 数据变更一律走 `useTodos` 的 `updateList(listId, updater)`（乐观更新 + fire-and-forget 落库），禁止直接调 idb 读写绕过 state。
   - 排序后必须调用 `sortTasks`，保持 进行中→待办→已完成 分组语义。
   - 新增 UI 用 Tailwind 原子类 + 既有 4 色 token；新组件参考 `components/*` 现有写法。
   - import 类型用 `import type`（`verbatimModuleSyntax` 强制）。
@@ -32,9 +32,9 @@
 
 ## 3. 不可破坏的架构约束
 
-1. **写路径唯一**：`updateActiveList` 是唯一写入口。绕过它会 state/持久化失同步。
+1. **写路径唯一**：`updateList(listId, updater)` 是唯一写入口（`addTask`/`clearCompleted` 等均为其包装）。绕过它会 state/持久化失同步。注意：列表被清空（有任务→无任务）时它会自动删除该列表并回退 `activeListId`（新建的空列表除外）。
 2. **排序语义在数组顺序**，`order` 字段是运行时重算的冗余值，不作为真相。
-3. **`currentIndex` ↔ `activeListId` 双向同步**（App.tsx:74-108）：改一侧必须同时改另一侧。
+3. **`currentIndex` ↔ `activeListId` 双向同步**（App.tsx:88-130）：改一侧必须同时改另一侧。滚动驱动的变化由 `scrollDrivenRef` 抑制反向 scrollTo（否则打断吸附动画）；`initialScrollDone` 首帧定位。改分页逻辑时两者缺一会导致翻页错乱或各页速度不一致。
 4. **`suppressLayout` + requestAnimationFrame**（App.tsx:110-117）：framer layout 与 dnd-kit transform 的协调机制，移除会导致拖拽抖动。
 5. **手势时序**：单击=进行中、双击=完成（300ms）、长按 450ms、TouchSensor 150ms/tolerance 12px，相互耦合。改一个必须全量回归。
 6. **DB schema**：`DB_VERSION` 只增不降；改动必须写 upgrade 迁移分支，否则老用户数据丢失。
@@ -42,7 +42,7 @@
 
 ## 4. UI / UX / 交互原则
 
-- 保持极简终端美学：纯色 `#F2F2F2` 背景、4 色灰度（F2F2F2/1A1A1A/8C8C8C/B3261E）、`[符号]` 括符、大写、等宽。**不引入**圆角/阴影/彩色/图标库/卡片布局。
+- 保持极简终端美学：纯色背景、4 色 token（`bg/ink/mute/danger`，见 DESIGN_SYSTEM §2；亮暗双主题由 `html[data-theme]` 切换，UI 一律用 `text-ink` 等工具类，**禁止硬编码色值**）、`[符号]` 括符、大写、等宽。**不引入**圆角/阴影/彩色/图标库/卡片布局。
 - 布局遵守安全区：贴边元素用 `env(safe-area-inset-*)`，桌面 `max-w-[640px] mx-auto`。
 - 输入框统一规范：`bg-transparent` + 下边框、关自动补全/拼写。
 - 破坏性操作必须**两级确认**（先动作，再"确认XX"），颜色 `#B3261E`。

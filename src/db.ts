@@ -96,3 +96,15 @@ export async function saveActiveListId(id: string): Promise<void> {
   const db = await getDB()
   await db.put('meta', id, 'active-list-id')
 }
+
+// ---- 库内备份（防主数据损坏/误删；RosterExport 序列化格式，与导出兼容）----
+export async function saveBackup(data: string): Promise<void> {
+  const db = await getDB()
+  await db.put('meta', data, 'backup')
+}
+
+export async function getBackup(): Promise<string | null> {
+  const db = await getDB()
+  const v = await db.get('meta', 'backup')
+  return typeof v === 'string' && v.length > 0 ? v : null
+}

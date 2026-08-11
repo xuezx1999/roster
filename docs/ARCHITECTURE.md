@@ -13,16 +13,18 @@
                           ▼
 ┌──────────────────────────────────────────────────────┐
 │  App.tsx（唯一页面，交互编排层）                        │
-│  • 横向 snap-scroll 分页 + 末尾"新增列表"页            │
-│  • 菜单/确认/actionMode/suppressLayout 等 UI 状态      │
-│  • 双指同步 currentIndex ↔ activeListId                │
+│  • 横向线性 snap-scroll 分页（首尾不可回绕）             │
+│  • 响应式双布局：移动端全局浮层 / 桌面多列 ListPanel      │
+│  • 菜单/确认/actionMode/suppressLayout 等 UI 状态        │
+│  • 双指同步 currentIndex ↔ activeListId                  │
 └─────────────────────────┬────────────────────────────┘
                           │ props + 回调
                           ▼
 ┌──────────────────────────────────────────────────────┐
 │  useTodos（hooks/useTodos.ts，全局状态 + 数据操作）    │
 │  • lists / activeListId / loaded                      │
-│  • 全部 CRUD 经 updateActiveList（乐观更新+落库）      │
+│  • 全部 CRUD 经 updateList(listId)（乐观更新+落库）    │
+│  • per-list API（桌面多列）与 activeListId 包装 API    │
 └─────────────────────────┬────────────────────────────┘
                           │ saveList / getAllLists / ...
                           ▼
@@ -54,12 +56,15 @@ useTodos.ts:38-56：`initialized` ref 保证只执行一次。`Promise.all([getA
 
 ### 3.2 写路径（唯一的写入口）
 ```
-updateActiveList(updater)  // useTodos.ts:62
+updateList(listId, updater)  // useTodos.ts:62
   → setLists(prev => { ...不可变更新...; saveList(updated) })
 ```
 特点：
 - **乐观更新**：React state 先变，UI 立即响应。
-- **fire-and-forget**：`saveList` 的 promise 不 await、不 catch。写失败静默。
+- **写失败可见**（v0.6.0 起）：所有写路径（saveList/saveAllLists/saveActiveListId/deleteList）失败时 `reportSave(false)` → `saveError` 置位，App 顶部显示 `[!] 保存失败`；成功复位。
+- **库内备份**（v0.6.0 起）：每次写成功后 `persistBackup` 把全量数据（RosterExport 格式）写入 `meta['backup']`；启动时若主库为空但有非空备份 → `dataLossDetected`，App 询问「恢复备份 / 忽略」（`restoreFromBackup` 走 `replaceData`）。备份写失败静默，不影响主数据。
+- **两套 API**：`addTaskFor/clearCompletedFor/...`（per-list，桌面多列按列调用）与 `addTask/clearCompleted/...`（activeListId 包装，移动端全局浮层）。
+- **自动删除空列表**（v0.2.6 起）：列表由"有任务"变为"无任务"（清除完成 / 删除任务删光）时，`updateList` 直接移除该列表（`deleteList` 落库）：若删的是当前列表，删光后 `activeListId=''` 回到初始空状态（NO LISTS + [+] ADD），否则回退到第一个列表。新建的空列表（`addList`）不经此路径，不受影响。
 
 ### 3.3 读路径
 `activeList = lists.find(l => l.id === activeListId)`。App.tsx 通过 `currentIndex` 定位当前展示的列表，两者通过 scroll 事件与 effect 双向同步（见 §5）。
@@ -68,11 +73,13 @@ updateActiveList(updater)  // useTodos.ts:62
 
 ### 4.1 useTodos（hooks/useTodos.ts，266 行）
 全部数据操作：
+- `updateList(listId, updater)`：**唯一写入口**（v0.5.0 起，原 `updateActiveList` 已并入），含自动删除空列表逻辑。
+- 两套 API：`addTaskFor/updateTaskContentFor/toggleCompleteFor/toggleInProgressFor/removeTaskFor/clearCompletedFor/reorderTasksFor/updateTitleFor`（per-list，桌面多列按列调用）；`addTask/updateTaskContent/...`（activeListId 包装，移动端全局浮层）。
 - `addTask`：插入头部 → `sortTasks` 重排（新任务因 order=0 会自动排进"待办"段首）
 - `updateTaskContent` / `updateTitle`：不可变更新 + `updatedAt`
 - `toggleComplete`：完成⇄取消，完成时记 `completedAt`，同时清 `inProgress` → `sortTasks`
 - `toggleInProgress`：仅非完成项可切换 → `sortTasks`
-- `removeTask` / `clearCompleted`：过滤
+- `removeTask` / `clearCompleted`：过滤（若导致列表清空，由 `updateList` 自动删除该列表）
 - `reorderTasks`：dnd-kit 拖拽后重排 + 重写 `order` 字段
 - `exportData`：生成 `RosterExport` v2
 - `replaceData`：导入覆盖（先校验 activeListId 有效性）
@@ -93,29 +100,37 @@ updateActiveList(updater)  // useTodos.ts:62
 - actionMode 下右侧浮现拖拽手柄（渐变遮罩），拖拽排序
 - 编辑中回车保存 / Esc 取消 / 失焦保存
 
-### 4.4 App.tsx 关键状态
+### 4.4 ListPanel（桌面多列列面板）
+职责：≥768px 时每个列表列的**自包含面板**（App.tsx 在列 section 内 `hidden md:block` 渲染；移动端 `md:hidden` 仍用全局浮层 + 裸任务）：
+- 列头：可编辑标题（`EditableTitle`）+ ≡ 列菜单（新增列表 / 清除完成（本列）/ 删除列表（仅 `lists.length > 1` 时显示，两级确认）/ 导出数据 / 导入数据，两级确认）。
+- 任务区：`DndContext` + `TaskList`（或 NO LISTS 占位），内部滚动；拖拽/删除/添加均走 **per-list API**（`onDragEnd`/`onClearCompleted` 等由 App 闭包绑定 `list.id`）。
+- 列底：actionMode（本列任务被长按时显示"删除此条 / 保存排序"）或 `AddTask`；双击空白打开本列 ADD。
+- 菜单状态（menuOpen/confirmAction/importError）为**列内局部 state**，多列互不干扰。
+
+### 4.5 App.tsx 关键状态
 | state | 作用 |
 |---|---|
 | `actionModeId` | 当前长按选中的任务（高亮 + 显示拖拽柄） |
 | `suppressLayout` | 拖拽结束后一帧内关闭 framer layout 动画 |
-| `menuOpen` | 右上角菜单 |
+| `menuOpen` | 右上角菜单（移动端浮层；桌面列菜单在 ListPanel 内） |
 | `confirmAction` | 'clear' \| 'export' \| 'import' \| null（两级确认） |
 | `importError` | 无效文件标记 |
 | `currentIndex` | 当前分页索引（与 activeListId 同步） |
 
 ## 5. 页面逻辑
 
-### 5.1 横向分页与双同步
-- 外层 `scrollerRef`：`overflow-x-auto snap-x snap-mandatory`，隐藏滚动条。
-- 每张列表是一个 `w-full shrink-0 snap-start` 的 `<section>`；末尾追加固定"新增列表"页。
-- **滚动 → state**：`handleScroll`（App.tsx:74-88）onScroll 用 `Math.round(scrollLeft / clientWidth)` 算索引，变化则 `switchList(id)`。注意用 `activeIndexRef` 做变化检测，避免每次滚动都 setState。
-- **state → 滚动**：effect（App.tsx:94-108）监听 `activeListId` 变化，`scrollTo({ behavior: 'smooth' })` 回滚。初始为 0 时不触发（用 `prevActiveListId` ref 判断）。
+### 5.1 横向线性分页与双同步（v0.3.0 起，v0.2.0-0.2.9 曾为克隆页循环分页，已回退）
+- 外层 `scrollerRef`：`overflow-x-auto snap-x snap-mandatory`，隐藏滚动条；**仅 `lists.length > 1` 时**启用横向滚动与 snap（`touch-action: pan-x pan-y`），单列表/无列表时为 `overflow-x-hidden` + `pan-y`（禁滑）。首尾页不可回绕（线性）。
+- **响应式列宽**：移动端每列 `w-full`（整屏单列）；桌面端（≥768px）每列 `md:w-[400px]` 定宽，宽屏一屏多列。**列宽以 `getColWidth`（首个 section 的 `offsetWidth`）动态获取**，索引计算、首帧定位、滚动定位均按列宽而非视口宽。
+- **键盘翻页**（Web 端）：`←`/`→` 按屏滚动（每屏 `floor(clientWidth / 列宽)` 列），输入框/编辑态不拦截；滚动后经 `handleScroll` 同步 `currentIndex`/`activeListId`。
+- **滚动 → state**：`handleScroll` 用 `Math.round(scrollLeft / 列宽)` 算索引，变化则更新 `currentIndex` 并 `switchList(id)`；该变化标记 `scrollDrivenRef`，使同步 effect **跳过反向 scrollTo**（位置已由原生滚动就位，再滚动会打断吸附动画、造成各页速度不一致）。`activeIndexRef` 做变化检测，避免每次滚动都 setState。
+- **state → 滚动**：effect 监听 `activeListId` 变化，`scrollTo({ left: idx × 列宽, behavior: 'smooth' })` 滚到对应列。**首帧用 `initialScrollDone` ref 做 auto 定位**，避免首帧位置错乱。
 - 两个方向都会 `setActionModeId(null)` 复位操作模式。
 
-### 5.2 交互入口
-- 双击空白（且避开 button/input/[data-task]/header）→ 当前页是空白页则 `addList()`，否则打开底部添加框。
-- 底部栏是浮动渐变遮罩：actionMode 时显示"删除此条 / 保存排序"，否则显示 AddTask。
-- 菜单所有动作均两级确认（AnimatePresence 切换文案，`mode="wait"`）。
+### 5.2 交互入口（响应式双布局）
+- **移动端（<768px）**：全局浮层——双击空白（避开 button/input/[data-task]/header）→ 无列表时 `addList()`，否则打开底部添加框；底部栏 actionMode 时"删除此条 / 保存排序"，无列表时 `[+] ADD`，否则 AddTask；右上角 ≡ 菜单作用于当前列表。
+- **桌面端（≥768px）**：每列 `ListPanel` 自包含——列菜单（新增列表/清除完成/导出/导入）、列底 ADD、双击空白打开本列 ADD、长按本列任务出 actionMode 操作；无全局浮层（header/bottom bar `md:hidden`）。
+- 空列表状态：**当前列表无任务**（含无任何列表）时显示 `NO LISTS` 占位；无任何列表时移动端底部 / 桌面空状态列内显示 `[+] ADD`。
 
 ## 6. 动画实现（三层叠加）
 

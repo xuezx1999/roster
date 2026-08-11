@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, forwardRef, useImperativeHandle } from 'react'
+import { flushSync } from 'react-dom'
 import { Bracket } from './Bracket'
 
 interface AddTaskProps {
@@ -18,11 +19,11 @@ export const AddTask = forwardRef<AddTaskHandle, AddTaskProps>(function AddTask(
   const inputRef = useRef<HTMLInputElement>(null)
 
   const open = useCallback(() => {
-    setIsAdding(true)
-    setTimeout(() => {
-      inputRef.current?.focus()
-      inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }, 10)
+    // flushSync 同步渲染输入框，让 focus 落在用户手势（双击）调用栈内——
+    // iOS Safari 只对用户手势同步触发的 focus 自动唤起键盘，setTimeout 延迟会丢失手势上下文
+    flushSync(() => setIsAdding(true))
+    inputRef.current?.focus({ preventScroll: true })
+    inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }, [])
 
   useImperativeHandle(ref, () => ({ open }))
@@ -48,7 +49,7 @@ export const AddTask = forwardRef<AddTaskHandle, AddTaskProps>(function AddTask(
   if (isAdding) {
     return (
       <div className="flex items-baseline gap-3 py-0.5">
-        <span className="font-mono text-[16px] leading-[1.6] text-[#1A1A1A] select-none">
+        <span className="font-mono text-[16px] leading-[1.6] text-ink select-none">
           <Bracket>+</Bracket>
         </span>
         <input
@@ -59,7 +60,7 @@ export const AddTask = forwardRef<AddTaskHandle, AddTaskProps>(function AddTask(
           onBlur={save}
           onKeyDown={handleKeyDown}
           placeholder="ADD"
-          className="flex-1 bg-transparent font-mono text-[16px] leading-[1.6] text-[#1A1A1A] outline-none border-b border-[#1A1A1A] placeholder:text-[#8C8C8C] min-w-0"
+          className="flex-1 bg-transparent font-mono text-[16px] leading-[1.6] text-ink outline-none border-b border-ink placeholder:text-mute min-w-0"
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
@@ -73,10 +74,10 @@ export const AddTask = forwardRef<AddTaskHandle, AddTaskProps>(function AddTask(
       onClick={open}
       className="flex items-baseline gap-3 py-0.5 w-full text-left cursor-pointer select-none group"
     >
-      <span className="font-mono text-[16px] leading-[1.6] text-[#8C8C8C] group-hover:text-[#1A1A1A] transition-colors">
+      <span className="font-mono text-[16px] leading-[1.6] text-mute group-hover:text-ink transition-colors">
         <Bracket>+</Bracket>
       </span>
-      <span className="font-mono text-[16px] leading-[1.6] text-[#8C8C8C] group-hover:text-[#1A1A1A] transition-colors">
+      <span className="font-mono text-[16px] leading-[1.6] text-mute group-hover:text-ink transition-colors">
         ADD
       </span>
     </button>

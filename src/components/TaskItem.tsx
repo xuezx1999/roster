@@ -29,6 +29,9 @@ export function TaskItem({
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
   const longPressTimerRef = useRef<number | null>(null)
   const justHandledTouchRef = useRef(false)
+  // 桌面鼠标长按（Web 端无 touch 事件，需鼠标替代路径进入 actionMode）
+  const mouseLongPressTimerRef = useRef<number | null>(null)
+  const justHandledMouseRef = useRef(false)
   const clickTimerRef = useRef<number | null>(null)
   const editInputRef = useRef<HTMLInputElement>(null)
 
@@ -43,18 +46,29 @@ export function TaskItem({
 
   useEffect(() => {
     if (isEditing && editInputRef.current) {
-      editInputRef.current.focus()
-      editInputRef.current.select()
-      editInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      const input = editInputRef.current
+      input.focus()
+      // 光标定位到文本末尾（不选中，便于直接补字/改末尾）
+      input.setSelectionRange(input.value.length, input.value.length)
+      input.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
   }, [isEditing])
+
+  // 桌面鼠标长按：mousedown 启动 450ms 定时器，mouseup/mouseleave 取消；触发后抑制随后的 click
+  const cancelMouseLongPress = useCallback(() => {
+    if (mouseLongPressTimerRef.current !== null) {
+      window.clearTimeout(mouseLongPressTimerRef.current)
+      mouseLongPressTimerRef.current = null
+    }
+  }, [])
 
   useEffect(() => {
     if (isDragging) {
       touchStartRef.current = null
       cancelLongPress()
+      cancelMouseLongPress()
     }
-  }, [isDragging])
+  }, [isDragging, cancelMouseLongPress])
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -77,7 +91,7 @@ export function TaskItem({
 
   const handleToggle = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation()
-    if (justHandledTouchRef.current) return
+    if (justHandledTouchRef.current || justHandledMouseRef.current) return
 
     if (clickTimerRef.current !== null) {
       window.clearTimeout(clickTimerRef.current)
@@ -131,8 +145,31 @@ export function TaskItem({
     touchStartRef.current = null
   }
 
+  const handleMouseDown = useCallback(() => {
+    if (isEditing || isDragging) return
+    cancelMouseLongPress()
+    mouseLongPressTimerRef.current = window.setTimeout(() => {
+      mouseLongPressTimerRef.current = null
+      justHandledMouseRef.current = true
+      setTimeout(() => {
+        justHandledMouseRef.current = false
+      }, 300)
+      onLongPress(task)
+    }, 450)
+  }, [isEditing, isDragging, onLongPress, task, cancelMouseLongPress])
+
+  // 桌面右键：直接进入 actionMode（拖拽/删除），编辑态/拖拽中保留系统右键菜单
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      if (isEditing || isDragging) return
+      e.preventDefault()
+      onLongPress(task)
+    },
+    [isEditing, isDragging, onLongPress, task]
+  )
+
   const handleClick = () => {
-    if (justHandledTouchRef.current) return
+    if (justHandledTouchRef.current || justHandledMouseRef.current) return
     if (isActionMode) return
     startEditing()
   }
@@ -172,10 +209,14 @@ export function TaskItem({
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           onTouchCancel={handleTouchEnd}
+          onMouseDown={handleMouseDown}
+          onMouseUp={cancelMouseLongPress}
+          onMouseLeave={cancelMouseLongPress}
+          onContextMenu={handleContextMenu}
         >
           <button
             onClick={handleToggle}
-            className="font-mono text-[16px] leading-[1.6] text-[#1A1A1A] select-none cursor-pointer"
+            className={`font-mono text-[16px] leading-[1.6] select-none cursor-pointer transition-colors duration-200 ${task.completed ? 'text-mute' : 'text-ink'}`}
             aria-label={task.completed ? 'Mark incomplete' : task.inProgress ? 'Mark not in progress' : 'Mark complete'}
           >
             <Bracket>
@@ -209,12 +250,12 @@ export function TaskItem({
               onChange={(e) => setEditValue(e.target.value)}
               onBlur={saveEdit}
               onKeyDown={handleKeyDown}
-              className="flex-1 bg-transparent font-mono text-[16px] leading-[1.6] text-[#1A1A1A] outline-none border-b border-[#1A1A1A] min-w-0"
+              className="flex-1 bg-transparent font-mono text-[16px] leading-[1.6] text-ink outline-none border-b border-ink min-w-0"
             />
           ) : (
             <span
               onClick={handleClick}
-              className={`flex-1 font-mono text-[16px] leading-[1.6] break-words cursor-pointer transition-colors duration-200 ${task.completed ? 'text-[#8C8C8C]' : 'text-[#1A1A1A]'}`}
+              className={`flex-1 font-mono text-[16px] leading-[1.6] break-words cursor-pointer transition-colors duration-200 ${task.completed ? 'text-mute' : 'text-ink'}`}
             >
               {task.content}
             </span>
@@ -227,14 +268,14 @@ export function TaskItem({
             className="absolute inset-y-0 right-0 flex items-center z-10"
             style={{
               paddingLeft: '56px',
-              background: 'linear-gradient(to right, rgba(242, 242, 242, 0) 0%, rgba(242, 242, 242, 0.9) 45%, #F2F2F2 75%)',
+              background: 'linear-gradient(to right, color-mix(in srgb, var(--color-bg) 0%, transparent) 0%, color-mix(in srgb, var(--color-bg) 90%, transparent) 45%, var(--color-bg) 75%)',
             }}
           >
             <button
               {...attributes}
               {...listeners}
               onTouchStart={(e) => e.stopPropagation()}
-              className="font-mono text-[16px] leading-[1.6] text-[#1A1A1A] select-none cursor-grab touch-none"
+              className="font-mono text-[16px] leading-[1.6] text-ink select-none cursor-grab touch-none"
               style={{ touchAction: 'none' }}
               aria-label="Drag to reorder"
             >

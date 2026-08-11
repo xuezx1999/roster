@@ -1,32 +1,36 @@
-# React + TypeScript + Vite
+# ROSTER
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+极简终端美学的个人待办（Todo）应用，移动端优先的 PWA，无后端、无账号，数据全部保存在本地浏览器。
 
-Currently, two official plugins are available:
+## 特性
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **多列表**：横向分页滑动切换（移动端整屏单列，桌面 ≥768px 每列 425px 一屏多列），首尾不可回绕；桌面端键盘 `←`/`→` 按屏翻页。
+- **任务三态**：`[o]` 进行中、`[●]` 已完成、空为待办；单击状态按钮=进行中，双击=完成。
+- **长按 / 右键操作模式**：拖拽排序、删除任务；桌面支持鼠标长按与右键。
+- **桌面自包含列面板**：每列含可编辑标题、列菜单（新增列表 / 清除完成 / 删除列表 / 导出 / 导入）、底部 ADD。
+- **亮/暗双主题**：菜单「◐」切换，记忆选择，未设置时跟随系统。
+- **数据安全**：写失败可见提示、库内自动备份与启动恢复、PWA 安装引导、定期自动导出 JSON。
+- **离线可用**：PWA（Service Worker 预缓存 + 字体缓存），添加为 PWA 后豁免 iOS 7 天清理规则。
 
-## React Compiler
+## 使用
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev      # 开发（默认 5173）
+npm run build    # 构建到 dist/
+npm run preview  # 预览生产构建
+npm run lint     # oxlint 静态检查
+npm run test     # Vitest（纯函数）
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## 数据与隐私
+
+- 全部数据存于浏览器 IndexedDB（`roster-db`），**不经过任何服务器**。
+- 跨设备迁移：菜单「导出数据」生成 JSON → 另一设备「导入数据」。
+- 清除浏览器站点数据 / 卸载 PWA 会删除本地数据，建议定期导出备份或使用 PWA 形态。
+
+## 技术栈
+
+Vite 6 · React 19 · TypeScript 5.6 · Tailwind CSS v4 · dnd-kit（拖拽）· framer-motion（动画）· idb（IndexedDB）· vite-plugin-pwa
+
+> 项目文档面向开发者：`docs/` 下有架构、设计系统、决策记录等说明（AGENTS.md 为 AI 协作规则）。

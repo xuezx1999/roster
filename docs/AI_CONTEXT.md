@@ -8,27 +8,28 @@
 **ROSTER**：一款移动端优先的极简单页待办应用（PWA）。
 - 无后端、无路由、无第三方状态库。
 - 数据全部存浏览器 IndexedDB，支持 JSON 导出/导入备份。
-- 多列表横向分页滑动，末尾固定"新增列表"空白页。
+- 多列表横向分页滑动（线性，首尾不可回绕），单列表禁用滑动；Web 宽屏（≥768px）每列定宽 400px 一屏多列，键盘 `←`/`→` 按屏翻页；支持亮/暗双主题（菜单「◐」切换，token 化）。
 
 ## 技术栈一句话
 
 Vite 6 + React 19 + TypeScript 5.6 + Tailwind CSS v4（`@tailwindcss/vite`）+ @dnd-kit（拖拽排序）+ framer-motion 13（动画）+ idb 8（IndexedDB）+ vite-plugin-pwa（Workbox）。
 
-## 源码文件地图（全部核心代码仅 10 个文件）
+## 源码文件地图（全部核心代码 11 个文件）
 
 ```
 src/
   main.tsx              入口 + PWA SW 注册（仅 PROD）
-  App.tsx               唯一页面，承载全部交互编排（518 行，最大文件）
+  App.tsx               唯一页面，承载交互编排 + 响应式双布局（701 行，最大文件）
   types.ts              Task / TodoList / RosterExport 类型定义
   db.ts                 IndexedDB 层 + v1→v2 数据迁移
-  utils.ts              generateId()
-  hooks/useTodos.ts     全局状态 + 全部数据操作（核心逻辑集中地）
+  utils.ts              generateId() + downloadJSON() + parseRosterImport()
+  hooks/useTodos.ts     全局状态 + 全部数据操作（写入口 updateList，per-list 与 activeListId 两套 API）
   components/
     EditableTitle.tsx   标题点击编辑
     TaskList.tsx        排序上下文 + 进出场动画容器
     TaskItem.tsx        单行任务（最复杂组件，手势处理全在这里）
     AddTask.tsx         底部添加（forwardRef + useImperativeHandle）
+    ListPanel.tsx       桌面多列自包含列面板（标题/列菜单/任务/ADD）
     Bracket.tsx         `[...]` 装饰括符
   index.css             Tailwind 入口 + 全局 token/字体
 ```
@@ -66,16 +67,17 @@ IndexedDB：库名 `roster-db`，版本 `2`，两个 store —— `lists`（keyP
 
 ## 核心不变量（改代码前必读）
 
-1. **所有数据变更都必须经过 `useTodos` 的 `updateActiveList`**（useTodos.ts:62-75）。它做"乐观更新 + fire-and-forget 落库"：先改 React state，再后台 `saveList`。不要绕过它直接操作 DB，否则 state 与持久化失同步。
+1. **所有数据变更都必须经过 `useTodos` 的 `updateList(listId, updater)`**（useTodos.ts:62-92），`addTask`/`clearCompleted` 等均为其包装。它做"乐观更新 + fire-and-forget 落库"：先改 React state，再后台 `saveList`。**列表被清空（有任务→无任务）时它会自动删除该列表并回退 activeListId**。不要绕过它直接操作 DB，否则 state 与持久化失同步。
 2. **显示顺序由 `sortTasks` 强制重排**（useTodos.ts:13-22）：进行中 → 待办 → 已完成。任何对 `tasks` 的增删改后都必须调用 `sortTasks` 保持分组语义。
-3. **`currentIndex` 与 `activeListId` 双向同步**（App.tsx:74-108）：滚动触发 `switchList`，`activeListId` 变化触发回滚动画。改任何一侧必须同时考虑另一侧，否则翻页与标题/底部栏错乱。
+3. **`currentIndex` 与 `activeListId` 双向同步**（App.tsx:88-130）：滚动触发 `switchList`，`activeListId` 变化触发滚动。滚动驱动的变化由 `scrollDrivenRef` 抑制反向滚动（否则打断吸附动画，各页速度不一致）。改任何一侧必须同时考虑另一侧，否则翻页与标题/底部栏错乱。
 4. **framer-motion 的 `layout` 与 dnd-kit 的 transform 冲突**：靠 `suppressLayout` 在拖拽结束后一帧内关掉 layout 动画规避（App.tsx:110-117）。这是已知脆弱点，别动这个机制。
 5. **移动端手势三套定时器并存**：单击/双击 300ms（TaskItem.tsx:78-93）、长按 450ms（TaskItem.tsx:95-103）、TouchSensor 拖拽延迟 150ms。改动任何一个必须回归全部手势。
 
 ## 哪些地方不要改（除非任务明确要求）
 
 - **`db.ts` 的 v1 迁移逻辑**（db.ts:34-61）：用 `as unknown as` 强转访问旧 store，能跑但脆弱。若项目无 v1 用户再考虑删除，不要"顺手重构"。
-- **`App.tsx` 的 `suppressLayout` + `requestAnimationFrame`**：去掉会导致拖拽结束瞬间列表抖动。
+- **`App.tsx` 的 `suppressLayout` + `requestAnimationFrame`**（App.tsx:151-158）：去掉会导致拖拽结束瞬间列表抖动。
+- **`App.tsx` 的首帧定位 `initialScrollDone` + `scrollDrivenRef` 抑制**（App.tsx:88-130）：删掉会导致首帧位置错乱或翻页时吸附动画被 JS 平滑滚动打断。
 - **`Bracket.tsx` 的 `3.5ch` 定宽**：改动会破坏所有 `[x]` 符号的对齐。
 - **手势时间常数**（300/450/150ms、tolerance 12px）：改一个就要全量回归。
 
@@ -86,7 +88,7 @@ IndexedDB：库名 `roster-db`，版本 `2`，两个 store —— `lists`（keyP
 - 无 git 仓库、无测试、无 CI。
 - `package.json` version 仍为 `0.0.0`。
 - README.md 仍是 Vite 官方模板，未更新（内容与项目无关，别被误导）。
-- 已知技术债：`deleteListById`（useTodos/db）已实现但 UI 无入口；持久化写失败无提示。
+- 已知技术债：无。数据安全四项已落地（写失败提示 / 库内备份与恢复 / PWA 安装引导 / 定期自动导出）。
 
 ## 快速上手命令
 

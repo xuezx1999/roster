@@ -12,16 +12,19 @@
 
 **不要引入**：圆角、阴影、彩色、图标库、卡片式布局、图片背景。这些会破坏整体语言。
 
-## 2. 设计 Token（全局仅 4 色）
+## 2. 设计 Token（全局 4 色，v0.8.0 起抽入 @theme）
 
-| Token 语义 | 色值 | 用途 | 出现方式 |
-|---|---|---|---|
-| 背景 | `#F2F2F2` | 页面背景、渐变遮罩、图标底色 | 全局 + 内联 style 重复书写 |
-| 主文字 | `#1A1A1A` | 标题、任务文本、可用按钮 | `text-[#1A1A1A]` |
-| 次要文字 | `#8C8C8C` | 占位符、ADD 按钮、加载态、hover 目标 | `text-[#8C8C8C]` |
-| 危险色 | `#B3261E` | 删除/清除/确认破坏性操作 | `text-[#B3261E]` |
+| Token | 亮色值 | 暗色值 | 用途 | 出现方式 |
+|---|---|---|---|---|
+| `--color-bg` | `#EFEFEF` | `#1A1A1A` | 页面背景、渐变遮罩、图标底色 | `bg-bg` / `text-bg` / `var(--color-bg)` |
+| `--color-ink` | `#1A1A1A` | `#EFEFEF` | 主文字、可用按钮 | `text-ink` / `border-ink` |
+| `--color-mute` | `#8C8C8C` | `#9C9C9C` | 占位符、ADD 按钮、加载态、hover 目标 | `text-mute` |
+| `--color-danger` | `#B3261E` | `#E05B50` | 删除/清除/确认破坏性操作 | `text-danger` / `bg-danger` |
 
-⚠️ 目前这些值在代码中**硬编码重复**（每处 `text-[#F2F2F2]` 等），未抽入 Tailwind `@theme`。**改动色值必须全局 grep 替换**（`src/` 与 `index.css`、`index.html`、`vite.config.ts` 的 manifest、`generate-icons.py`、`public/favicon.svg` 都有 `#F2F2F2`）。这是已知改进点，但不要在常规任务中顺手做（见 DECISIONS.md）。
+- **定义**：`index.css` 的 `@theme`（亮色默认）+ `html[data-theme='dark']` 覆盖同名变量；Tailwind 工具类（`text-ink` 等）基于 `var()` 自动跟随主题。
+- **渐变遮罩**：`linear-gradient(to ..., var(--color-bg) 60%, transparent 100%)`；拖拽手柄用 `color-mix(in srgb, var(--color-bg) 90%, transparent)`。
+- **切换**：菜单「◐ 暗色模式/亮色模式」；持久化 `localStorage['roster-theme']`，未设置时跟随系统 `prefers-color-scheme`；`main.tsx` 渲染前设置 `data-theme` 防闪烁。
+- ⚠️ 色值已 token 化（原"硬编码重复"警告解除，见 DECISIONS.md D13）。静态外壳（PWA manifest theme_color/background_color、favicon、图标 PNG）不随主题，保持亮色值。
 
 ## 3. 排版
 
@@ -29,7 +32,7 @@
 |---|---|---|---|
 | 页面标题 | 18px | 1.4 | `tracking-[0.08em]`、大写 `uppercase` |
 | 任务/按钮/输入 | 16px | 1.6 | 默认 |
-| 完成项 | 16px | 1.6 | 颜色降为 `#8C8C8C` |
+| 完成项 | 16px | 1.6 | 文本与左侧状态按钮颜色均降为 `#8C8C8C` |
 
 字体栈（全局唯一，`--font-mono`）：
 ```
@@ -42,16 +45,16 @@
 ## 4. 布局规范
 
 - **移动端**：满屏。顶部固定标题（safe-area 上缘 + 24px，渐变向下淡出）、底部固定操作栏（safe-area 下缘 + 24px，渐变向上淡出）。
-- **桌面端**：内容居中 `max-w-[640px] mx-auto`，任务列表额外 `pl-8`（与标题对齐）。
+- **桌面端（≥768px）**：滚动容器左右各 32px 留白（`md:px-8`），每个列表为定宽 `400px` 内容 + 左右 16px 内边距的**自包含列面板**（`ListPanel`）——列头（可编辑标题 + ≡ 列菜单）、任务区（内部滚动）、列底（ADD / actionMode 操作）。列间以 **24px 间距 + 1px 细竖线**（`#1A1A1A` 15% 透明度，终端分屏风格）分割：**所有列 `border-l`**（列间单线 + 首列左边界线），**末列额外 `border-r`**（右边界线）；列步进 425px（含间距/线）。**列总宽 < 视口时整组居中**（`w-fit min-w-full md:min-w-0 mx-auto`，桌面取内容宽 + auto margin），**≥ 视口可横向滚动时左对齐**（fit-content 钳制到容器宽、margin 归零）；展示不下的用键盘 `←`/`→` 按屏翻页；单列表/空列表仍禁横向滚动。全局浮层（顶部标题/底部 ADD）在桌面隐藏。不引入卡片/阴影/圆角。
 - **安全区**：所有贴边元素必须用 `env(safe-area-inset-*)`，四个方向。
-- **横向分页**：`snap-x snap-mandatory`，每页 `w-full shrink-0 snap-start`。
+- **横向分页**：`snap-x snap-mandatory`，每列 `w-full md:w-[400px] shrink-0 snap-start`；**仅 >1 个列表时可横向滑动**（线性，首尾不可回绕），单列表/空列表禁用横向滑动（`overflow-x-hidden` + `touch-action: pan-y`）。
 - `index.html` 有 `viewport-fit=cover`，页面禁止水平滚动溢出。
 
 ## 5. 组件规范
 
 ### 5.1 Bracket（`[...]` 括符）
 - 总宽 `3.5ch`，中间内容区 `1.5ch`，左右 `[` `]`。
-- 用于所有行首标记：`[+]` `[o]` `[●]` `[−]` `[↑]` `[↓]` `[✓]` `[!]` `[≡]` `[↩]`。
+- 用于所有行首标记：`[+]` `[o]` `[●]` `[−]` `[∅]` `[↑]` `[↓]` `[✓]` `[!]` `[≡]` `[↩]`（`∅`=删除列表（空集语义，常态黑色，确认态 `✕` 标红），`✕`=删除类确认）。
 - **定宽不可随意改**，它是全应用纵向对齐的基准。汉字在 1.5ch 里会溢出（用 `overflow-hidden` 裁切），符号务必选窄字符。
 
 ### 5.2 按钮
@@ -66,10 +69,10 @@
 
 ### 5.4 渐变遮罩（本应用的"阴影"）
 顶部标题与底部操作栏用线性渐变制造淡出效果，而非 box-shadow：
-- 顶部：`linear-gradient(to bottom, #F2F2F2 60%, rgba(242,242,242,0) 100%)`
+- 顶部：`linear-gradient(to bottom, #EFEFEF 60%, rgba(239,239,239,0) 100%)`
 - 底部：`linear-gradient(to top, ...)` 同构
 - 菜单：`linear-gradient(to left, ...)`（向右淡出）
-- 拖拽手柄：`linear-gradient(to right, rgba(242,242,242,0) 0%, rgba(242,242,242,.9) 45%, #F2F2F2 75%)`
+- 拖拽手柄：`linear-gradient(to right, rgba(239,239,239,0) 0%, rgba(239,239,239,.9) 45%, #EFEFEF 75%)`
 
 ## 6. 交互时序（改手势必读）
 
@@ -78,9 +81,14 @@
 | 文本单击 | — | 进入编辑态 |
 | 状态按钮单击 | 300ms 内无第二次点击 | `toggleInProgress` |
 | 状态按钮双击 | 300ms 内第二次点击 | `toggleComplete` |
-| 长按 | 触屏按住 450ms 不移动（>12px 取消） | 进入 actionMode |
+| 长按 | 触屏按住 450ms 不移动（>12px 取消）；**桌面鼠标按住 450ms**（mouseup/mouseleave 取消） | 进入 actionMode（触屏与鼠标独立实现，触发后各抑制随后的 click） |
+| 桌面右键 | 右键任务行（编辑态/拖拽中除外） | 阻止系统菜单，直接进入 actionMode（`onContextMenu`） |
+| 桌面右键（空白） | 全局拦截 | 禁用系统菜单（APP 沉浸感，App 根容器 `onContextMenu`）；编辑输入框除外（保留复制粘贴） |
 | 拖拽排序 | 仅 actionMode 下拖拽手柄 | dnd-kit TouchSensor delay 150ms / tolerance 12px |
+| 横向翻页 | 列表数 > 1 时滑动 | 原生 scroll-snap，线性分页（首尾不可回绕） |
 | 拖拽结束后 | 一帧内 | `suppressLayout` 关 layout 动画 |
+
+> ⚠️ 横向翻页仅在有多个列表时可用；单列表（或无列表）容器为 `overflow-x-hidden`，不会产生横向滑动。当前列表无任务时主体显示 `NO LISTS` 占位，添加第一个任务后消失。
 
 实现位置：TaskItem.tsx:78-93（双击）、95-110（长按）、App.tsx:65-72（传感器）、110-117（suppressLayout）。
 
@@ -96,6 +104,7 @@
 |---|---|
 | 列表 layout 重排 | `duration 0.3` `ease easeInOut` `transformOrigin top` |
 | 进出场 opacity | `0.15s` |
+| 标题切换（切列表） | AnimatePresence `mode="wait"`，opacity 淡出→淡入 `0.15s`（key=`activeListId`，编辑保存标题不触发） |
 | 菜单/底部栏滑动 | `y ±6/8px`，`0.15s` |
 | 完成标记弹入 | scale `0.4→1`，`0.15s` |
 | hover 颜色 | `transition-colors duration-200` |
@@ -105,7 +114,8 @@
 - `-webkit-tap-highlight-color: transparent`（禁点击高亮）。
 - `overscroll-behavior-y: none`（禁下拉刷新粘连）。
 - `font-size: 16px` 于 body（防 iOS 缩放）。
-- 图标/标题：manifest `theme_color` 与 `background_color` 均为 `#F2F2F2`，standalone + portrait。
+- **键盘避让**：iOS Safari 的 `position: fixed` 底部栏不自动让位键盘——App.tsx 监听 `visualViewport` 的 resize/scroll，按 `innerHeight - vv.height` 抬起底部栏 `bottom`，保证 ADD 输入框在键盘上方。
+- 图标/标题：manifest `theme_color` 与 `background_color` 均为 `#EFEFEF`，standalone + portrait。
 - 菜单 `≡` 的 `Bracket` 宽度与文字基线对齐靠 `items-baseline`。
 
 ## 9. 设计参照

@@ -17,8 +17,10 @@ export function EditableTitle({ title, onSave, editable = true }: EditableTitleP
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
-      inputRef.current.focus()
-      inputRef.current.select()
+      const input = inputRef.current
+      input.focus()
+      // 光标定位到文本末尾（不选中，便于直接补字/改末尾）
+      input.setSelectionRange(input.value.length, input.value.length)
     }
   }, [isEditing])
 
@@ -50,7 +52,7 @@ export function EditableTitle({ title, onSave, editable = true }: EditableTitleP
         onChange={(e) => setValue(e.target.value)}
         onBlur={save}
         onKeyDown={handleKeyDown}
-        className="w-full bg-transparent font-mono text-[18px] leading-[1.4] tracking-[0.08em] text-[#1A1A1A] outline-none border-b border-[#1A1A1A] uppercase"
+        className="w-full bg-transparent font-mono text-[18px] leading-[1.4] tracking-[0.08em] text-ink outline-none border-b border-ink uppercase"
         style={{ fontFamily: "'IBM Plex Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace" }}
       />
     )
@@ -59,7 +61,7 @@ export function EditableTitle({ title, onSave, editable = true }: EditableTitleP
   return (
     <button
       onClick={() => editable && setIsEditing(true)}
-      className={`w-full text-left font-mono text-[18px] leading-[1.4] tracking-[0.08em] text-[#1A1A1A] uppercase select-none ${editable ? 'cursor-pointer' : 'cursor-default'}`}
+      className={`w-full text-left font-mono text-[18px] leading-[1.4] tracking-[0.08em] text-ink uppercase select-none ${editable ? 'cursor-pointer' : 'cursor-default'}`}
       style={{ fontFamily: "'IBM Plex Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace" }}
     >
       {title}

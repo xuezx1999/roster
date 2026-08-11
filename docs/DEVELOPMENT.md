@@ -38,22 +38,17 @@ PWA 的 `virtual:pwa-register` 模块在**非 PROD 下不存在**——`main.tsx
 - `tsconfig.node.json`：仅包含 `vite.config.ts`。
 - 类型检查输出写到 `node_modules/.tmp/`（gitignore 已覆盖）。
 
-## 5. Lint（当前环境有坑）
+## 5. Lint（已修复，2026-08-11）
 
-`npm run lint` 在本机**无法运行**：
-```
-Error: Cannot find module '@oxlint/binding-darwin-universal'
-```
-原因：oxlint 1.75 的原生绑定未随 npm install 拉取（平台匹配问题），属**环境/依赖问题，非代码问题**。
-- 解决方案：`npm install -D @oxlint/binding-darwin-universal` 或升级 oxlint，或换 `npx oxlint@latest`。
-- 若安装成功，规则来自 `.oxlintrc.json`：react/typescript/oxc 插件 + `react/rules-of-hooks: error` + `react/only-export-components: warn`。
-- 代码里残留的 `// eslint-disable-next-line react-hooks/exhaustive-deps`（App.tsx:87,107）是历史写法，oxlint 不认识该注释，无实际作用，不要依赖它。
+`npm run lint`（oxlint）可正常运行（`oxlint@latest` 重装后原生绑定就绪）：`Found 0 warnings and 0 errors`。
+- 规则来自 `.oxlintrc.json`：react/typescript/oxc 插件 + `react/rules-of-hooks: error` + `react/only-export-components: warn`。
+- 历史遗留：`// eslint-disable-next-line react-hooks/exhaustive-deps`（App.tsx）是旧写法，oxlint 不认识，无实际作用，不要依赖它。
 
 ## 6. PWA 细节
 
 配置在 `vite.config.ts`：
 - `registerType: 'autoUpdate'`：新版本自动激活 SW，无用户提示。
-- manifest：standalone、portrait、`#F2F2F2` 主题色，图标 192/512 + maskable。
+- manifest：standalone、portrait、`#EFEFEF` 主题色，图标 192/512 + maskable。
 - workbox：预缓存 `**/*.{js,css,html,ico,png,svg}`；Google Fonts（`fonts.googleapis.com` / `fonts.gstatic.com`）CacheFirst，缓存名 `google-fonts-cache` / `gstatic-fonts-cache`，**1 年过期**。
 - ⚠️ 改了字体相关配置（新增字体 URL 或 font-family）后，`dist` 里的旧字体缓存不会自动失效，测试时注意 `Cache-First` 会命旧。
 
@@ -66,10 +61,10 @@ Error: Cannot find module '@oxlint/binding-darwin-universal'
 1. `npx tsc -b` 零错误。
 2. `npm run build` 成功产出 dist。
 3. 功能回归（按改动范围取子集）：
-   - **任务 CRUD**：添加/编辑/删除/清除已完成。
+   - **任务 CRUD**：添加/编辑/删除/清除完成（仅当前列表）。
    - **三态**：单击→进行中（○）、双击→完成（●）、再点→取消。
    - **长按**：450ms 进入 actionMode，出现拖拽柄与底部操作栏，可删除/拖拽排序。
-   - **分页**：横向滑动切换列表，标题/底部栏跟随，末尾新增列表页。
+   - **分页**：>1 列表横向滑动首尾循环切换（最后一个右滑回第一个、第一个左滑到最后一个），标题/底部栏跟随；单列表不产生横向滑动；空列表显示 `NO LISTS` + 底部 `[+] ADD`。
    - **菜单**：清除/导出/导入（含 v1 旧格式导入）两级确认；点外部关闭。
    - **数据持久化**：刷新页面数据仍在；IndexedDB（DevTools → Application）里 `roster-db` 的 lists/meta 正确。
    - **PWA（PROD）**：SW 注册、离线可打开。
@@ -96,8 +91,8 @@ Error: Cannot find module '@oxlint/binding-darwin-universal'
 ## 9. 调试技巧
 
 - 布局/手势问题优先在**移动模拟**（DevTools 设备模式）或真机测——桌面端触控事件行为不同。
-- 分页错乱时先看 `currentIndex` 与 `activeListId` 是否一致（App.tsx 双同步逻辑）。
-- 动画抖动优先怀疑 `suppressLayout`（App.tsx:110-117）被改或 `layout` 与 dnd-kit transform 冲突。
+- 分页错乱时先看 `currentIndex` 与 `activeListId` 是否一致（App.tsx 双同步逻辑）；循环布局下先确认是否误触发克隆页瞬移（`jumpTo`）。
+- 动画抖动优先怀疑 `suppressLayout`（App.tsx:151-158）被改或 `layout` 与 dnd-kit transform 冲突。
 - 数据丢失怀疑：`updateActiveList` 的 `saveList` 未 catch（IndexedDB 配额/隐私模式）。
 - 图标再生成：`python3 generate-icons.py`（需 Pillow；首次 `pip install pillow`）。
 
