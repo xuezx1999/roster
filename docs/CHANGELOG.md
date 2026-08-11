@@ -447,6 +447,27 @@
 
 ---
 
+## [0.8.5] 2026-08-11 — 技术债清理批次
+
+### 工程化
+- `package.json` version `0.0.0` → `0.8.4`。
+- **oxlint 修复**：`oxlint@latest`（1.78）重装后原生绑定就绪，`npm run lint` 恢复可用（0 errors）。
+- **README 重写**：Vite 模板 → 面向用户的 ROSTER 项目介绍（特性/使用/数据隐私/技术栈）。
+- **git 落地**：仓库已初始化（main，含 0.1.0 部署配置提交），本批次变更已提交。
+- **Vitest 测试**（D10 落地）：安装 vitest，导出 `sortTasks`/`normalizeTask`，覆盖纯函数（排序分组/order 重写、布尔收紧、导入解析 v2/v1/非法），`npm test` 8 用例全绿。
+
+### 修复
+- **v1 导入死代码**：`parseRosterImport` 的 v1 分支被 `app !== 'ROSTER'` 前置拦截（v1 数据无 app 字段），实际从未生效；改为先识别 v1 再校验 v2，v1 旧格式导入恢复可用（测试覆盖）。
+- **`deleteListById` 备份竞态**：备份数据改由 updater 内构造（与 updateList 一致），移除 `nextListsRef` 时序依赖。
+- **移动端菜单加「删除列表」**：`[∅]` 黑字 + `[✕] 确认删除` 红字，`lists.length > 1` 时显示，作用于当前列表（与桌面列菜单对齐）。
+
+### 备注
+- `updateList` 在 setState updater 内调副作用（saveList 等）为既有设计（StrictMode 双执行幂等），保留不改（重构风险高）。
+- WebDAV 跨设备同步未做（需外部服务凭据）；Cloudflare Pages 部署待执行（需 wrangler 认证）。
+- 文档同步：`docs/DEVELOPMENT.md` §5、`docs/AI_CONTEXT.md`。
+
+---
+
 ## 当前版本
 
 - `package.json` version：`0.0.0`（未随功能更新，可忽略）。

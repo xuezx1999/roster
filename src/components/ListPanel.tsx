@@ -143,7 +143,7 @@ export function ListPanel({
         <div className="flex-1 min-w-0">
           <EditableTitle title={list.title} onSave={onSaveTitle} />
         </div>
-        {/* 右移 24px（= 列间 pr-6 间距）：[≡] 右缘距右侧分割线 = 16px，与标题左缘对称；
+        {/* 右移 24px（= 列间 pr-6 间距，两者需同步修改）：[≡] 右缘距右侧分割线 = 16px，与标题左缘对称；
             transform 不改变布局槽位（不与标题重叠），且成为下拉面板的定位基准，菜单相对 ≡ 关系不变 */}
         <div className="relative" ref={menuRef} style={{ transform: 'translateX(24px)' }}>
           <button

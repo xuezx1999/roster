@@ -83,12 +83,11 @@ IndexedDB：库名 `roster-db`，版本 `2`，两个 store —— `lists`（keyP
 
 ## 当前项目状态（2026-08-11）
 
-- `tsc -b` ✅ 通过。
-- `oxlint` ⚠️ 本机运行报错：缺少 `@oxlint/binding-darwin-universal`，属环境依赖问题，非代码问题（详见 DEVELOPMENT.md）。
-- 无 git 仓库、无测试、无 CI。
-- `package.json` version 仍为 `0.0.0`。
-- README.md 仍是 Vite 官方模板，未更新（内容与项目无关，别被误导）。
-- 已知技术债：无。数据安全四项已落地（写失败提示 / 库内备份与恢复 / PWA 安装引导 / 定期自动导出）。
+- `tsc -b` ✅ 通过；`npm test`（Vitest 纯函数）✅ 通过；`npm run lint`（oxlint）✅ 通过。
+- 有 git 仓库（main 分支）、无 CI。
+- `package.json` version：`0.8.4`。
+- README.md 已重写为面向用户的项目介绍。
+- 已知技术债：WebDAV 跨设备同步未做（需外部凭据）；Cloudflare Pages 部署待执行（需 wrangler 认证）；`updateList` 在 updater 内调副作用为既有设计（幂等，保留）。
 
 ## 快速上手命令
 
@@ -96,7 +95,8 @@ IndexedDB：库名 `roster-db`，版本 `2`，两个 store —— `lists`（keyP
 npm install
 npm run dev        # 开发
 npm run build      # tsc -b && vite build
-npm run lint       # oxlint（当前机器环境报错）
+npm run lint       # oxlint
+npm run test       # Vitest（纯函数）
 npm run preview    # 预览生产构建
 ```
 

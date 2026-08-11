@@ -43,10 +43,7 @@ export function parseRosterImport(text: string): RosterExport | null {
   }
   if (!data || typeof data !== 'object') return null
   const obj = data as Record<string, unknown>
-  if (obj.app !== 'ROSTER') return null
-  if (Array.isArray(obj.lists)) {
-    return obj as unknown as RosterExport
-  }
+  // 先识别 v1 旧格式（无 app 字段：{ title, tasks }），再校验 v2
   if (Array.isArray(obj.tasks) && typeof obj.title === 'string') {
     // Legacy v1 format: single list
     const legacyId = generateId()
@@ -57,6 +54,10 @@ export function parseRosterImport(text: string): RosterExport | null {
       activeListId: legacyId,
       lists: [{ id: legacyId, title: obj.title, tasks: obj.tasks }],
     }
+  }
+  if (obj.app !== 'ROSTER') return null
+  if (Array.isArray(obj.lists)) {
+    return obj as unknown as RosterExport
   }
   return null
 }

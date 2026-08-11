@@ -12,7 +12,7 @@ import {
 } from '../db'
 import { generateId, parseRosterImport } from '../utils'
 
-function sortTasks(tasks: Task[]): Task[] {
+export function sortTasks(tasks: Task[]): Task[] {
   const inProgress = tasks.filter((t) => t.inProgress && !t.completed)
   const pending = tasks.filter((t) => !t.inProgress && !t.completed)
   const done = tasks.filter((t) => t.completed)
@@ -23,7 +23,7 @@ function sortTasks(tasks: Task[]): Task[] {
   return sorted
 }
 
-function normalizeTask(t: Task): Task {
+export function normalizeTask(t: Task): Task {
   return {
     ...t,
     inProgress: t.inProgress === true,
