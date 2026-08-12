@@ -36,9 +36,10 @@ interface ListPanelProps {
   onSaveOrder: () => void
   onExport: () => RosterExport
   onReplace: (data: RosterExport) => void
+  onOpenHelp: () => void
 }
 
-type ConfirmAction = 'clear' | 'export' | 'import' | 'delete' | 'coming-soon' | null
+type ConfirmAction = 'clear' | 'export' | 'import' | 'delete' | null
 
 /**
  * 桌面多列（≥768px）的自包含列表面板：
@@ -67,6 +68,7 @@ export function ListPanel({
   onSaveOrder,
   onExport,
   onReplace,
+  onOpenHelp,
 }: ListPanelProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
@@ -360,32 +362,21 @@ export function ListPanel({
                 <div className="w-full border-t border-ink/15" />
 
                 <AnimatePresence mode="wait" initial={false}>
-                  {confirmAction === 'coming-soon' ? (
-                    // 「正在建设中…」中间态：动画与确认态一致，但不标红
-                    <motion.button
-                      key="coming-soon"
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 6 }}
-                      transition={{ duration: 0.15 }}
-                      onClick={() => setConfirmAction(null)}
-                      className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
-                    >
-                      <Bracket>!</Bracket> 正在建设中…
-                    </motion.button>
-                  ) : (
-                    <motion.button
-                      key="help"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.15 }}
-                      onClick={() => setConfirmAction('coming-soon')}
-                      className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
-                    >
-                      <Bracket>?</Bracket> 使用说明
-                    </motion.button>
-                  )}
+                  <motion.button
+                    key="help"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    onClick={() => {
+                      onOpenHelp()
+                      setMenuOpen(false)
+                      setConfirmAction(null)
+                    }}
+                    className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
+                  >
+                    <Bracket>?</Bracket> 使用说明
+                  </motion.button>
                 </AnimatePresence>
 
                 <input

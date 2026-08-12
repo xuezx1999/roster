@@ -125,7 +125,7 @@ export function buildDemoList(): TodoList {
     ...extra,
   })
   const tasks = [
-    t('单击待办事项标记为“进行中”，该记录会自动置顶。', { inProgress: true }),
+    t('单击待办事项左侧的括号，该记录会自动置顶。', { inProgress: true }),
     t('强烈建议移动端以 PWA 形式使用，让数据更安全。'),
     t('双击空白区域或点击下方 [+]ADD 按钮添加待办事项。'),
     t('长按（桌面端为右击）某条待办事项，激活排序或删除当条记录。'),
@@ -133,7 +133,7 @@ export function buildDemoList(): TodoList {
     t('建议定期手动导出为 JSON 进行备份，导入数据会覆盖现有数据。'),
     t('新增列表后，全屏幕左右滑动切换列表，桌面端用键盘左右键调整视图。'),
     t('清除已完成事项仅对视野内的当前列表有效。'),
-    t('双击完成待办事项，该记录会自动沉底。', { completed: true, completedAt: now }),
+    t('双击待办事项左侧的括号标记完成待办事项，该记录会自动沉底。', { completed: true, completedAt: now }),
   ]
   tasks.forEach((task, i) => {
     task.order = i

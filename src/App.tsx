@@ -16,6 +16,7 @@ import { EditableTitle } from './components/EditableTitle'
 import { TaskList } from './components/TaskList'
 import { AddTask, type AddTaskHandle } from './components/AddTask'
 import { ListPanel } from './components/ListPanel'
+import { HelpPage } from './components/HelpPage'
 import { Bracket } from './components/Bracket'
 import type { Task, RosterExport } from './types'
 import { downloadJSON, parseRosterImport } from './utils'
@@ -67,9 +68,11 @@ function App() {
   const [actionModeId, setActionModeId] = useState<string | null>(null)
   const [suppressLayout, setSuppressLayout] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [confirmAction, setConfirmAction] = useState<'clear' | 'export' | 'import' | 'delete' | 'coming-soon' | null>(null)
+  const [confirmAction, setConfirmAction] = useState<'clear' | 'export' | 'import' | 'delete' | null>(null)
   const [importError, setImportError] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
+  // 视图切换：'lists' 列表页 / 'help' 使用说明页（菜单「使用说明」进入，右上角返回）
+  const [view, setView] = useState<'lists' | 'help'>('lists')
   // 主题：初始值由 main.tsx 渲染前设置的 data-theme 决定
   const [theme, setTheme] = useState<'light' | 'dark'>(() =>
     document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'
@@ -240,9 +243,10 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded, activeListId, lists])
 
-  // Web 端键盘翻页：←/→ 按屏翻（一屏能显示几列翻几列）；输入框/编辑态不拦截
+  // Web 端键盘翻页：←/→ 按屏翻（一屏能显示几列翻几列）；输入框/编辑态/使用说明页不拦截
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (view !== 'lists') return
       if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
       const t = e.target as HTMLElement | null
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
@@ -260,7 +264,7 @@ function App() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [lists.length])
+  }, [lists.length, view])
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
@@ -305,6 +309,7 @@ function App() {
   }
 
   const handleBlankDoubleClick = (e: React.MouseEvent) => {
+    if (view !== 'lists') return
     if (window.matchMedia('(min-width: 768px)').matches) return // 桌面多列由各列面板自行处理
     const target = e.target as HTMLElement
     if (target.closest('button, input, textarea, [data-task]')) return
@@ -433,7 +438,7 @@ function App() {
 
   return (
     <div
-      className="h-svh overflow-hidden"
+      className="relative h-svh overflow-hidden"
       onDoubleClick={handleBlankDoubleClick}
       onContextMenu={handleGlobalContextMenu}
       style={{
@@ -503,7 +508,8 @@ function App() {
           </button>
         </div>
       )}
-      {/* Floating title（移动端专属浮层；桌面多列由各列面板自带标题） */}
+      {/* Floating title（移动端专属浮层；桌面多列由各列面板自带标题；使用说明页由 HelpPage 自带标题栏） */}
+      {view === 'lists' && (
       <header
         className="fixed top-0 left-0 right-0 z-20 md:hidden"
         style={{
@@ -735,32 +741,21 @@ function App() {
                   <div className="w-full border-t border-ink/15" />
 
                   <AnimatePresence mode="wait" initial={false}>
-                    {confirmAction === 'coming-soon' ? (
-                      // 「正在建设中…」中间态：动画与确认态一致，但不标红
-                      <motion.button
-                        key="coming-soon"
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 6 }}
-                        transition={{ duration: 0.15 }}
-                        onClick={() => setConfirmAction(null)}
-                        className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
-                      >
-                        <Bracket>!</Bracket> 正在建设中…
-                      </motion.button>
-                    ) : (
-                      <motion.button
-                        key="help"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.15 }}
-                        onClick={() => setConfirmAction('coming-soon')}
-                        className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
-                      >
-                        <Bracket>?</Bracket> 使用说明
-                      </motion.button>
-                    )}
+                    <motion.button
+                      key="help"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      onClick={() => {
+                        setView('help')
+                        setMenuOpen(false)
+                        setConfirmAction(null)
+                      }}
+                      className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
+                    >
+                      <Bracket>?</Bracket> 使用说明
+                    </motion.button>
                   </AnimatePresence>
 
                   <input
@@ -776,12 +771,14 @@ function App() {
           </div>
         </div>
       </header>
+      )}
 
-      {/* Horizontal scroller of list panels (线性分页: >1 列表时可左右滑动, 首尾不可回绕) */}
+      {/* Horizontal scroller of list panels (线性分页: >1 列表时可左右滑动, 首尾不可回绕)
+          使用说明页时 hidden（保留 DOM，返回时滚动位置不丢） */}
       <div
         ref={scrollerRef}
         onScroll={handleScroll}
-        className={`h-full w-full md:px-8 ${lists.length > 1 ? 'overflow-x-auto snap-x snap-mandatory' : 'overflow-x-hidden'}`}
+        className={`h-full w-full md:px-8 ${view === 'help' ? 'hidden' : ''} ${lists.length > 1 ? 'overflow-x-auto snap-x snap-mandatory' : 'overflow-x-hidden'}`}
         style={{
           scrollSnapType: lists.length > 1 ? 'x mandatory' : undefined,
           scrollbarWidth: 'none',
@@ -825,6 +822,7 @@ function App() {
                   onSaveOrder={handleSaveOrder}
                   onExport={exportData}
                   onReplace={replaceData}
+                  onOpenHelp={() => setView('help')}
                 />
               </div>
 
@@ -901,7 +899,15 @@ function App() {
         </div>
       </div>
 
+      {/* 使用说明页（全屏独立视图，桌面/移动端共用；scroller 以 hidden 保留在 DOM 中） */}
+      {view === 'help' && (
+        <div className="absolute inset-0 z-10">
+          <HelpPage onBack={() => setView('lists')} />
+        </div>
+      )}
+
       {/* Floating bottom bar（移动端专属浮层；桌面多列由各列面板自带底栏） */}
+      {view === 'lists' && (
       <div
         ref={bottomBarRef}
         className="fixed bottom-0 left-0 right-0 z-20 md:hidden"
@@ -972,6 +978,7 @@ function App() {
           </AnimatePresence>
         </div>
       </div>
+      )}
     </div>
   )
 }

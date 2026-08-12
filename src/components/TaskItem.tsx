@@ -33,7 +33,7 @@ export function TaskItem({
   const mouseLongPressTimerRef = useRef<number | null>(null)
   const justHandledMouseRef = useRef(false)
   const clickTimerRef = useRef<number | null>(null)
-  const editInputRef = useRef<HTMLInputElement>(null)
+  const editInputRef = useRef<HTMLTextAreaElement>(null)
 
   const {
     attributes,
@@ -44,6 +44,14 @@ export function TaskItem({
     isDragging,
   } = useSortable({ id: task.id })
 
+  // 编辑态多行输入：根据内容自动调整 textarea 高度（删行时先重置再回弹）
+  const autoResize = useCallback(() => {
+    const el = editInputRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [])
+
   useEffect(() => {
     if (isEditing && editInputRef.current) {
       const input = editInputRef.current
@@ -51,8 +59,9 @@ export function TaskItem({
       // 光标定位到文本末尾（不选中，便于直接补字/改末尾）
       input.setSelectionRange(input.value.length, input.value.length)
       input.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      autoResize()
     }
-  }, [isEditing])
+  }, [isEditing, autoResize])
 
   // 桌面鼠标长按：mousedown 启动 450ms 定时器，mouseup/mouseleave 取消；触发后抑制随后的 click
   const cancelMouseLongPress = useCallback(() => {
@@ -183,12 +192,15 @@ export function TaskItem({
     startEditing()
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // 中文输入法（IME）组合期间的回车用于确认候选词，不提交
     if (e.nativeEvent.isComposing) return
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      // 多行输入：Enter 换行，⌘/Ctrl+Enter 保存（失焦也会保存）
+      e.preventDefault()
       saveEdit()
     } else if (e.key === 'Escape') {
+      e.preventDefault()
       setEditValue(task.content)
       setIsEditing(false)
     }
@@ -254,19 +266,25 @@ export function TaskItem({
           </button>
 
           {isEditing ? (
-            <input
+            <textarea
               ref={editInputRef}
-              type="text"
+              rows={1}
               value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
+              onChange={(e) => {
+                setEditValue(e.target.value)
+                autoResize()
+              }}
               onBlur={saveEdit}
               onKeyDown={handleKeyDown}
-              className="flex-1 bg-transparent font-mono text-[16px] leading-[1.6] text-ink outline-none border-b border-ink min-w-0"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              className="flex-1 bg-transparent font-mono text-[16px] leading-[1.6] text-ink outline-none border-b border-ink min-w-0 resize-none overflow-hidden"
             />
           ) : (
             <span
               onClick={handleClick}
-              className={`flex-1 font-mono text-[16px] leading-[1.6] break-words cursor-pointer transition-colors duration-200 ${task.completed ? 'text-mute' : 'text-ink'}`}
+              className={`flex-1 font-mono text-[16px] leading-[1.6] break-words whitespace-pre-wrap cursor-pointer transition-colors duration-200 ${task.completed ? 'text-mute' : 'text-ink'}`}
             >
               {task.content}
             </span>
