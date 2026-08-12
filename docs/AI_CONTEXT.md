@@ -12,7 +12,7 @@
 
 ## 技术栈一句话
 
-Vite 6 + React 19 + TypeScript 5.6 + Tailwind CSS v4（`@tailwindcss/vite`）+ @dnd-kit（拖拽排序）+ framer-motion 13（动画）+ idb 8（IndexedDB）+ vite-plugin-pwa（Workbox）。
+Vite 6 + React 19 + TypeScript 5.6 + Tailwind CSS v4（`@tailwindcss/vite`）+ @dnd-kit（拖拽排序）+ framer-motion 13（动画）+ idb 8（IndexedDB）+ vite-plugin-pwa（Workbox）+ cuelume（Web Audio 交互音效，零依赖 ~5kB）。
 
 ## 源码文件地图（全部核心代码 11 个文件）
 
@@ -81,11 +81,12 @@ IndexedDB：库名 `roster-db`，版本 `2`，两个 store —— `lists`（keyP
 - **`Bracket.tsx` 的 `3.5ch` 定宽**：改动会破坏所有 `[x]` 符号的对齐。
 - **手势时间常数**（300/450/150ms、tolerance 12px）：改一个就要全量回归。
 
-## 当前项目状态（2026-08-11）
+## 当前项目状态（2026-08-12）
 
-- `tsc -b` ✅ 通过；`npm test`（Vitest 纯函数，13 用例）✅ 通过；`npm run lint`（oxlint）✅ 通过。
+- `tsc -b` ✅ 通过；`npm test`（Vitest 纯函数，22 用例）✅ 通过；`npm run lint`（oxlint）✅ 通过。
 - 有 git 仓库（main 分支）、GitHub Actions CI（push/PR 跑 tsc/lint/test）、无 CI 失败记录。
-- `package.json` version：`0.8.8`。
+- `package.json` version：`0.9.0`（0.9.0 起接入 cuelume 交互音效 + 音效开关，见 CHANGELOG）。
+- 音效：菜单「♪ 开启/关闭音效」持久化 `localStorage['roster-sound']`（默认开）；`App.tsx` 顶层 `bind()` 一次 + `setEnabled` 跟随开关；浏览器首次交互前自动静默。
 - README.md 已重写为面向用户的项目介绍。
 - 已知技术债：WebDAV 跨设备同步未做（需外部凭据）；`updateList` 在 updater 内调副作用为既有设计（幂等，保留）；`.workbuddy/` 已 gitignore（个人记忆不入库）。（Cloudflare Pages 已通过 Git 集成部署，push 触发自动构建。）
 

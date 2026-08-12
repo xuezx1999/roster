@@ -10,6 +10,7 @@ import {
 } from '@dnd-kit/core'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { AnimatePresence, motion } from 'framer-motion'
+import { bind, play, setEnabled } from 'cuelume'
 import { useTodos } from './hooks/useTodos'
 import { usePwaUpdate } from './hooks/usePwaUpdate'
 import { EditableTitle } from './components/EditableTitle'
@@ -91,6 +92,38 @@ function App() {
       .querySelector('meta[name="theme-color"]')
       ?.setAttribute('content', next === 'dark' ? '#1A1A1A' : '#EFEFEF')
   }
+  // 音效：默认开启，localStorage 持久化（cuelume 自身不持久化偏好，由应用管理）
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('roster-sound') !== 'off'
+    } catch {
+      return true
+    }
+  })
+  const toggleSound = () => {
+    setSoundEnabled((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('roster-sound', next ? 'on' : 'off')
+      } catch {
+        // ignore
+      }
+      return next
+    })
+  }
+  // cuelume：bind 一次（幂等、事件委托覆盖动态 DOM）；setEnabled 跟随用户偏好
+  useEffect(() => {
+    bind()
+  }, [])
+  useEffect(() => {
+    setEnabled(soundEnabled)
+  }, [soundEnabled])
+  // 保存失败横幅出现时播放 error 音（用户可恢复的错误反馈；首帧 saveError=false 不触发）
+  const prevSaveErrorRef = useRef(saveError)
+  useEffect(() => {
+    if (saveError && !prevSaveErrorRef.current) play('error', { volume: 0.7 })
+    prevSaveErrorRef.current = saveError
+  }, [saveError])
   // 键盘弹出高度：iOS Safari 的 fixed 元素不会自动让位键盘，需按 visualViewport 高度差抬起底部栏。
   // 用 ref 直接改 style.bottom 而非 state：避免每次键盘滚动触发整个 App 重渲染
   const bottomBarRef = useRef<HTMLDivElement>(null)
@@ -289,9 +322,16 @@ function App() {
     setActionModeId(task.id)
   }
 
+  // 新增列表：带轻量结果音效（全局菜单/列菜单/空态 ADD/双击空白共用同一入口）
+  const handleAddList = () => {
+    addList()
+    play('tick', { volume: 0.6 })
+  }
+
   const handleConfirmDelete = () => {
     if (actionModeId) {
       removeTask(actionModeId)
+      play('droplet', { volume: 0.8 })
     }
     setActionModeId(null)
   }
@@ -300,6 +340,7 @@ function App() {
   const handleConfirmDeleteFor = (listId: string) => {
     if (actionModeId) {
       removeTaskFor(listId, actionModeId)
+      play('droplet', { volume: 0.8 })
     }
     setActionModeId(null)
   }
@@ -316,7 +357,7 @@ function App() {
     if (actionModeId) return
     if (target.closest('header')) return
     if (lists.length === 0) {
-      addList()
+      handleAddList()
       return
     }
     addTaskRef.current?.open()
@@ -332,6 +373,7 @@ function App() {
 
   const handleExport = () => {
     doExport()
+    play('success', { volume: 0.6 })
     setMenuOpen(false)
     setConfirmAction(null)
   }
@@ -540,6 +582,7 @@ function App() {
           </div>
           <div className="relative" ref={menuRef}>
             <button
+              data-cuelume-toggle
               onClick={() => setMenuOpen((v) => !v)}
               className="font-mono text-[16px] leading-[1.6] text-ink select-none cursor-pointer"
               aria-label="Menu"
@@ -567,6 +610,7 @@ function App() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15 }}
+                    data-cuelume-toggle
                     onClick={() => {
                       // 不关闭菜单：避免"关菜单后点击穿透"误触下方任务；可连续切换
                       toggleTheme()
@@ -574,6 +618,19 @@ function App() {
                     className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
                   >
                     <Bracket>◐</Bracket> {theme === 'dark' ? '亮色模式' : '暗色模式'}
+                  </motion.button>
+
+                  <motion.button
+                    key="sound"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    data-cuelume-toggle
+                    onClick={toggleSound}
+                    className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
+                  >
+                    <Bracket>♪</Bracket> {soundEnabled ? '关闭音效' : '开启音效'}
                   </motion.button>
 
                   {/* 分组分割线（菜单通用分组，两处同步维护） */}
@@ -586,7 +643,7 @@ function App() {
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15 }}
                     onClick={() => {
-                      addList()
+                      handleAddList()
                       setMenuOpen(false)
                       setConfirmAction(null)
                     }}
@@ -803,7 +860,9 @@ function App() {
                 <ListPanel
                   list={list}
                   theme={theme}
+                  soundEnabled={soundEnabled}
                   onToggleTheme={toggleTheme}
+                  onToggleSound={toggleSound}
                   actionModeId={actionModeId}
                   suppressLayout={suppressLayout}
                   sensors={sensors}
@@ -815,7 +874,7 @@ function App() {
                   onSaveTitle={(title) => updateTitleFor(list.id, title)}
                   onAddTask={(content) => addTaskFor(list.id, content)}
                   onClearCompleted={() => clearCompletedFor(list.id)}
-                  onAddList={addList}
+                  onAddList={handleAddList}
                   onDeleteList={() => deleteListById(list.id)}
                   canDelete={lists.length > 1}
                   onConfirmDelete={() => handleConfirmDeleteFor(list.id)}
@@ -887,7 +946,7 @@ function App() {
                   NO LISTS
                 </span>
                 <button
-                  onClick={addList}
+                  onClick={handleAddList}
                   className="hidden md:flex items-baseline gap-3 font-mono text-[16px] leading-[1.6] text-mute hover:text-ink transition-colors cursor-pointer select-none"
                 >
                   <Bracket>+</Bracket>
@@ -953,7 +1012,7 @@ function App() {
                 transition={{ duration: 0.15 }}
               >
                 <button
-                  onClick={addList}
+                  onClick={handleAddList}
                   className="flex items-baseline gap-3 py-0.5 w-full text-left cursor-pointer select-none group"
                 >
                   <span className="font-mono text-[16px] leading-[1.6] text-mute group-hover:text-ink transition-colors">

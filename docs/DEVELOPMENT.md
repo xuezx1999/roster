@@ -98,7 +98,7 @@ PWA 的 `virtual:pwa-register` 模块在**非 PROD 下不存在**——`main.tsx
 
 ## 10. 变更边界
 
-- 新增依赖前确认必要（项目依赖极少：react、idb、dnd-kit、framer-motion、tailwind、pwa）。
+- 新增依赖前确认必要（项目依赖极少：react、idb、dnd-kit、framer-motion、tailwind、pwa、cuelume）。
 - 不要引入测试框架前先问是否值得——项目当前零测试。
 - 修改 `db.ts` 的 schema 必须**递增 DB_VERSION** 并写 upgrade 迁移分支，否则老用户数据直接丢失。
 

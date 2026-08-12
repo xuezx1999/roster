@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { DndContext, closestCenter, type DragEndEvent, type SensorDescriptor } from '@dnd-kit/core'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { AnimatePresence, motion } from 'framer-motion'
+import { play } from 'cuelume'
 import { EditableTitle } from './EditableTitle'
 import { TaskList } from './TaskList'
 import { AddTask, type AddTaskHandle } from './AddTask'
@@ -20,7 +21,9 @@ interface ListPanelProps {
   suppressLayout: boolean
   sensors: SensorDescriptor<any>[]
   theme: 'light' | 'dark'
+  soundEnabled: boolean
   onToggleTheme: () => void
+  onToggleSound: () => void
   onDragEnd: (event: DragEndEvent) => void
   onToggle: (id: string) => void
   onToggleInProgress: (id: string) => void
@@ -52,7 +55,9 @@ export function ListPanel({
   suppressLayout,
   sensors,
   theme,
+  soundEnabled,
   onToggleTheme,
+  onToggleSound,
   onDragEnd,
   onToggle,
   onToggleInProgress,
@@ -101,6 +106,7 @@ export function ListPanel({
     const pad = (n: number) => String(n).padStart(2, '0')
     const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
     downloadJSON(data, `ROSTER-${stamp}.json`)
+    play('success', { volume: 0.6 })
     setMenuOpen(false)
     setConfirmAction(null)
   }
@@ -161,6 +167,7 @@ export function ListPanel({
         {/* ≡ 菜单：定位/面板样式与移动端全局浮层完全一致（不右移），面板样式统一走 menuStyles */}
         <div className="relative" ref={menuRef}>
           <button
+            data-cuelume-toggle
             onClick={() => setMenuOpen((v) => !v)}
             className="font-mono text-[16px] leading-[1.6] text-ink select-none cursor-pointer"
             aria-label="Menu"
@@ -188,6 +195,7 @@ export function ListPanel({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15 }}
+                  data-cuelume-toggle
                   onClick={() => {
                     // 不关闭菜单：避免"关菜单后点击穿透"误触下方任务；可连续切换
                     onToggleTheme()
@@ -195,6 +203,19 @@ export function ListPanel({
                   className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
                 >
                   <Bracket>◐</Bracket> {theme === 'dark' ? '亮色模式' : '暗色模式'}
+                </motion.button>
+
+                <motion.button
+                  key="sound"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  data-cuelume-toggle
+                  onClick={onToggleSound}
+                  className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
+                >
+                  <Bracket>♪</Bracket> {soundEnabled ? '关闭音效' : '开启音效'}
                 </motion.button>
 
                 {/* 分组分割线（菜单通用分组，两处同步维护） */}
@@ -227,6 +248,7 @@ export function ListPanel({
                         transition={{ duration: 0.15 }}
                         onClick={() => {
                           onClearCompleted()
+                          play('droplet', { volume: 0.8 })
                           setMenuOpen(false)
                           setConfirmAction(null)
                         }}
@@ -261,6 +283,7 @@ export function ListPanel({
                         transition={{ duration: 0.15 }}
                         onClick={() => {
                           onDeleteList()
+                          play('droplet', { volume: 0.8 })
                           setMenuOpen(false)
                           setConfirmAction(null)
                         }}

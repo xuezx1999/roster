@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { motion } from 'framer-motion'
+import { play } from 'cuelume'
 import type { Task } from '../types'
 import { Bracket } from './Bracket'
 
@@ -110,6 +111,10 @@ export function TaskItem({
   const handleToggle = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation()
     if (justHandledTouchRef.current || justHandledMouseRef.current) return
+
+    // 状态切换反馈：单击（进行中）/双击（完成）都响；长按进入 actionMode 的残留 click
+    // 已被上方 justHandled* 抑制，不会误响
+    play('toggle', { volume: 0.5 })
 
     if (clickTimerRef.current !== null) {
       window.clearTimeout(clickTimerRef.current)

@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { flushSync } from 'react-dom'
+import { play } from 'cuelume'
 import { Bracket } from './Bracket'
 
 interface AddTaskProps {
@@ -32,6 +33,7 @@ export const AddTask = forwardRef<AddTaskHandle, AddTaskProps>(function AddTask(
     const trimmed = value.trim()
     if (trimmed) {
       onAdd(trimmed)
+      play('press', { volume: 0.5 })
     }
     setValue('')
     setIsAdding(false)
