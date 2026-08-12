@@ -19,7 +19,7 @@ import { AddTask, type AddTaskHandle } from './components/AddTask'
 import { ListPanel } from './components/ListPanel'
 import { HelpPage } from './components/HelpPage'
 import { Bracket } from './components/Bracket'
-import type { Task, RosterExport } from './types'
+import type { Task, TodoList, RosterExport } from './types'
 import { downloadJSON, parseRosterImport } from './utils'
 import {
   MENU_PANEL_BACKGROUND,
@@ -29,6 +29,10 @@ import {
 
 // 当前列表列宽（含桌面端间距与分隔线，即 snap/翻页步进）：桌面每列 425px（400 内容 + 24 间距 + 1px 分隔线），移动端整屏宽
 const getColWidth = (el: HTMLElement) => el.querySelector('section')?.offsetWidth ?? el.clientWidth
+
+// 无列表占位：桌面端无列表时渲染为 ListPanel 占位列（与正常空 list 同构：ROSTER 标题 + [≡] 菜单 + NO LISTS + 底部 ADD），
+// 因此桌面端不再渲染独立的「NO LISTS + [+] ADD」section。id 用魔法值避免与真实列表冲突；移动端由全局浮层接管 [+] ADD。
+const PLACEHOLDER_LIST: TodoList = { id: '__empty__', title: 'ROSTER', tasks: [] }
 
 function App() {
   const {
@@ -974,30 +978,55 @@ function App() {
             )
           })}
 
-          {/* Empty state (no lists): 占位提示; 移动端底部 [+] ADD, 桌面端列内 [+] ADD */}
+          {/* 空状态占位（无任何列表时）：
+              - 桌面端：渲染占位 ListPanel，与正常空 list 列视觉同构（顶部 ROSTER 标题 + [≡] 菜单 + NO LISTS + 底部 ADD）。
+                placeholder list 的所有写操作禁用，ADD 触发 handleAddList 新增真实列表。
+              - 移动端：本 section 仅作 snap-start 锚点；视觉效果由全局浮层（顶部 header + 底部 [+] ADD）接管，与原有体验一致。
+              末列同时带 `md:border-l md:border-r` 形成左右对称的列边界线，与"移动多列 = 移动端横向重复排列"原则一致。 */}
           {isEmpty && (
             <section
-              className="w-full shrink-0 snap-start overflow-y-auto"
-              style={{
-                scrollSnapAlign: 'start',
-                paddingTop: 'calc(env(safe-area-inset-top) + 108px)',
-                paddingBottom: 'calc(env(safe-area-inset-bottom) + 120px)',
-                paddingLeft: 'calc(env(safe-area-inset-left) + 24px)',
-                paddingRight: 'calc(env(safe-area-inset-right) + 24px)',
-              }}
+              className="w-full md:w-[425px] md:border-l md:border-r md:border-ink/15 shrink-0 snap-start overflow-y-auto md:overflow-hidden"
+              style={{ scrollSnapAlign: 'start' }}
             >
-              <div className="max-w-[640px] mx-auto h-full flex flex-col items-center justify-center gap-8">
-                <span className="font-mono text-[16px] leading-[1.6] text-mute select-none">
-                  NO LISTS
-                </span>
-                <button
-                  onClick={handleAddList}
-                  className="hidden md:flex items-baseline gap-3 font-mono text-[16px] leading-[1.6] text-mute hover:text-ink transition-colors cursor-pointer select-none"
-                >
-                  <Bracket>+</Bracket>
-                  <span>ADD</span>
-                </button>
+              {/* 桌面端：ListPanel 占位列 */}
+              <div className="hidden md:block h-full">
+                <ListPanel
+                  list={PLACEHOLDER_LIST}
+                  actionModeId={null}
+                  suppressLayout={suppressLayout}
+                  sensors={sensors}
+                  theme={theme}
+                  soundEnabled={soundEnabled}
+                  onToggleTheme={toggleTheme}
+                  onToggleSound={toggleSound}
+                  onDragEnd={() => {}}
+                  onToggle={() => {}}
+                  onToggleInProgress={() => {}}
+                  onUpdate={() => {}}
+                  onLongPress={handleLongPress}
+                  onSaveTitle={() => {}}
+                  onAddTask={() => handleAddList()}
+                  onClearCompleted={() => {}}
+                  onAddList={handleAddList}
+                  onDeleteList={() => {}}
+                  canDelete={false}
+                  onConfirmDelete={() => {}}
+                  onSaveOrder={handleSaveOrder}
+                  onExport={exportData}
+                  onReplace={replaceData}
+                  onOpenHelp={() => setView('help')}
+                />
               </div>
+              {/* 移动端：占位 secton 仅作为 snap-start 锚点，正文由全局浮层渲染 */}
+              <div
+                className="md:hidden"
+                style={{
+                  paddingTop: 'calc(env(safe-area-inset-top) + 108px)',
+                  paddingBottom: 'calc(env(safe-area-inset-bottom) + 128px)',
+                  paddingLeft: 'calc(env(safe-area-inset-left) + 24px)',
+                  paddingRight: 'calc(env(safe-area-inset-right) + 24px)',
+                }}
+              />
             </section>
           )}
         </div>

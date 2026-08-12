@@ -1,3 +1,11 @@
+## [0.9.5] 2026-08-12 — 桌面端空列表状态改走 ListPanel 占位
+
+### 变更
+- **桌面端无列表时进入 ListPanel 占位列（与正常空 list 列视觉一致）**：`App.tsx` 原本独立渲染一个 section 显示 `NO LISTS` + `[+] ADD` 按钮（占满整宽、无顶部 ROSTER 标题与 `[≡]` 菜单）。改为桌面端无列表时也走 `ListPanel` 渲染：顶部 ROSTER 标题、`[≡]` 菜单、中间 `NO LISTS`、底部 `[+] ADD`——与"Web 多列 = 移动端横向重复排列"原则一致。placeholder list 的所有写操作禁用，底部 `ADD` 触发 `handleAddList` 新增真实列表。移动端行为完全不变（仍由全局浮层接管 `[+] ADD`）。
+- 涉及：`src/App.tsx`（空状态 section → ListPanel 占位）、`docs/ARCHITECTURE.md` §5.2、`package.json` version 0.9.4 → 0.9.5、`src/helpContent.ts` 当前版本号同步。
+
+---
+
 # CHANGELOG.md — 版本演进记录
 
 > 项目已接入 git（main 分支，远程 origin→github.com/xuezx1999/roster.git）；早期版本（v1/v0.x）由代码痕迹推断重建，0.8.5 起有 commit 记录。

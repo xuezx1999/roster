@@ -130,7 +130,7 @@ updateList(listId, updater)  // useTodos.ts:62
 ### 5.2 交互入口（响应式双布局）
 - **移动端（<768px）**：全局浮层——双击空白（避开 button/input/[data-task]/header）→ 无列表时 `addList()`，否则打开底部添加框；底部栏 actionMode 时"删除此条 / 保存排序"，无列表时 `[+] ADD`，否则 AddTask；右上角 ≡ 菜单作用于当前列表。
 - **桌面端（≥768px）**：每列 `ListPanel` 自包含——列菜单（新增列表/清除完成/导出/导入）、列底 ADD、双击空白打开本列 ADD、长按本列任务出 actionMode 操作；无全局浮层（header/bottom bar `md:hidden`）。
-- 空列表状态：**当前列表无任务**（含无任何列表）时显示 `NO LISTS` 占位；无任何列表时移动端底部 / 桌面空状态列内显示 `[+] ADD`。
+- 空列表状态：**当前列表无任务**（含无任何列表）时显示 `NO LISTS` 占位；无任何列表时移动端由全局底部浮层显示 `[+] ADD`，桌面端进入 `ListPanel` 占位列（与正常空 list 列同构：ROSTER 标题 + `[≡]` 菜单 + `NO LISTS` + 底部 `[+] ADD`，由虚拟 `PLACEHOLDER_LIST` 渲染；placeholder 的所有写操作禁用，底部 ADD 触发 `handleAddList` 新增真实列表）。
 
 ## 6. 动画实现（三层叠加）
 

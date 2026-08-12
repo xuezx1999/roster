@@ -85,7 +85,7 @@ IndexedDB：库名 `roster-db`，版本 `2`，两个 store —— `lists`（keyP
 
 - `tsc -b` ✅ 通过；`npm test`（Vitest 纯函数，22 用例）✅ 通过；`npm run lint`（oxlint）✅ 通过。
 - 有 git 仓库（main 分支）、GitHub Actions CI（push/PR 跑 tsc/lint/test）、无 CI 失败记录。
-- `package.json` version：`0.9.0`（0.9.0 起接入 cuelume 交互音效 + 音效开关，见 CHANGELOG）。
+- `package.json` version：`0.9.5`。
 - 音效：菜单「♪ 开启/关闭音效」持久化 `localStorage['roster-sound']`（默认开）；`App.tsx` 顶层 `bind()` 一次 + `setEnabled` 跟随开关；浏览器首次交互前自动静默。
 - README.md 已重写为面向用户的项目介绍。
 - 已知技术债：WebDAV 跨设备同步未做（需外部凭据）；`updateList` 在 updater 内调副作用为既有设计（幂等，保留）；`.workbuddy/` 已 gitignore（个人记忆不入库）。（Cloudflare Pages 已通过 Git 集成部署，push 触发自动构建。）
