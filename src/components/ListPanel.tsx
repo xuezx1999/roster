@@ -152,13 +152,18 @@ export function ListPanel({
   }
 
   return (
-    <div className="h-full flex flex-col px-4" onDoubleClick={handleBlankDoubleClick}>
-      {/* 列头：标题 + 菜单（固定高 108px：标题在顶部，下方留白，任务区紧随 → 任务从列顶 108px 开始，与移动端一致） */}
+    <div className="h-full relative px-4" onDoubleClick={handleBlankDoubleClick}>
+      {/* 列头：absolute 浮层 + 渐变遮罩（与移动端 header 同构）——
+          任务区占满全高（h-full），内容向上滚可穿过列头渐变区（65-108px）被自然淡出。
+          paddingLeft/Right 等效原 px-4（absolute 不受父 padding 影响，需自身补） */}
       <div
-        className="flex items-baseline justify-between gap-3 shrink-0"
+        className="absolute top-0 left-0 right-0 z-10 flex items-baseline justify-between gap-3"
         style={{
           paddingTop: 'calc(env(safe-area-inset-top) + 24px)',
+          paddingLeft: 'calc(env(safe-area-inset-left) + 16px)',
+          paddingRight: 'calc(env(safe-area-inset-right) + 16px)',
           height: 'calc(env(safe-area-inset-top) + 108px)',
+          background: 'linear-gradient(to bottom, var(--color-bg) 60%, transparent 100%)',
         }}
       >
         <div className="flex-1 min-w-0">
@@ -415,8 +420,16 @@ export function ListPanel({
         </div>
       </div>
 
-      {/* 任务区（紧随列头，任务内容从列顶 108px 开始，与移动端布局一致） */}
-      <div className="flex-1 min-h-0 overflow-y-auto pl-8">
+      {/* 任务区：占满列高（h-full），paddingTop 让位列头、paddingBottom 让位列底 + 54px 留白。
+          内容可向上滚穿过列头渐变区、向下滚入列底渐变区——与移动端 header/底部操作栏同构 */}
+      <div
+        className="h-full overflow-y-auto pl-8"
+        style={{
+          paddingTop: 'calc(env(safe-area-inset-top) + 108px)',
+          // 列底浮层高 ≈ safe + 73.6，+54px 留白 → 滚到底最后一条距列底操作栏顶 ≈ 54px（列头 108 的一半）
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 128px)',
+        }}
+      >
         {list.tasks.length === 0 ? (
           <div className="h-full flex items-center justify-center">
             <span className="font-mono text-[16px] leading-[1.6] text-mute select-none">
@@ -443,12 +456,16 @@ export function ListPanel({
         )}
       </div>
 
-      {/* 列底：actionMode 操作或 ADD（pl-8 与任务列表左侧对齐） */}
+      {/* 列底：absolute 浮层 + 渐变向上（与移动端底部操作栏同构），任务滚入下方被自然淡出。
+          paddingLeft 48px 对齐任务区左边距（px-4 + pl-8）；paddingRight 16px 等效原 px-4 */}
       <div
-        className="shrink-0 pl-8"
+        className="absolute bottom-0 left-0 right-0 z-10"
         style={{
           paddingTop: '16px',
+          paddingLeft: 'calc(env(safe-area-inset-left) + 48px)',
+          paddingRight: 'calc(env(safe-area-inset-right) + 16px)',
           paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)',
+          background: 'linear-gradient(to top, var(--color-bg) 60%, transparent 100%)',
         }}
       >
         <AnimatePresence mode="wait" initial={false}>

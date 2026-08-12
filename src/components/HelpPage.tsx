@@ -171,16 +171,19 @@ export function HelpPage({ onBack }: HelpPageProps) {
 
   return (
     <div className="h-full flex flex-col">
-      {/* 标题栏：位置/样式与列表标题一致（safe-area + 24px 起、高 108px），仅不可单击修改 */}
+      {/* 标题栏：fixed 浮层 + 渐变遮罩（与移动端列表标题一致），
+          正文滚动时穿过 header 渐变尾区被自然淡出，避免与下方内容硬切 */}
       <header
-        className="shrink-0"
+        className="fixed top-0 left-0 right-0 z-20"
         style={{
           paddingTop: 'calc(env(safe-area-inset-top) + 24px)',
-          height: 'calc(env(safe-area-inset-top) + 108px)',
+          paddingBottom: '24px',
+          paddingLeft: 'calc(env(safe-area-inset-left) + 24px)',
+          paddingRight: 'calc(env(safe-area-inset-right) + 24px)',
           background: 'linear-gradient(to bottom, var(--color-bg) 60%, transparent 100%)',
         }}
       >
-        <div className="max-w-[640px] mx-auto h-full flex items-baseline justify-between gap-3 px-6">
+        <div className="max-w-[640px] mx-auto h-full flex items-baseline justify-between gap-3">
           <div className="flex-1 min-w-0">
             <EditableTitle title="ROSTER 使用说明" onSave={() => {}} editable={false} />
           </div>
@@ -194,11 +197,15 @@ export function HelpPage({ onBack }: HelpPageProps) {
         </div>
       </header>
 
-      {/* 正文：可滚动，内容与移动端列表同宽基准（max-w-640 居中，左右 24px） */}
+      {/* 正文：可滚动；padding-top 与移动端列表任务区对齐（safe-area + 108px），
+          让内容从 header 下方穿过时进入渐变尾区被遮罩 */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div
           className="max-w-[640px] mx-auto px-6 pb-16"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 32px)' }}
+          style={{
+            paddingTop: 'calc(env(safe-area-inset-top) + 108px)',
+            paddingBottom: 'calc(env(safe-area-inset-bottom) + 32px)',
+          }}
         >
           {HELP_TREE.map((section) => (
             <Section key={section.id} section={section} collapsed={collapsed} onToggle={toggle} />

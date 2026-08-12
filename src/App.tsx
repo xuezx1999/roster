@@ -843,16 +843,16 @@ function App() {
           touchAction: lists.length > 1 ? 'pan-x pan-y' : 'pan-y',
         }}
       >
-        {/* w-fit + mx-auto：列总宽 < 视口时整组居中（桌面 md:min-w-0 取内容宽）；
-            ≥ 视口时 fit-content 钳制到容器宽、margin 归零 → 左对齐滚动；移动端保留 min-w-full（单列全宽） */}
-        <div className="w-fit min-w-full md:min-w-0 mx-auto flex h-full items-stretch">
+        {/* 移动端 w-full（固定 100% 宽，避免 fit-content + 百分比宽循环把列撑到内容宽；
+            桌面 md:w-fit 保留原逻辑：列总宽 < 视口时整组居中，≥ 视口时左对齐滚动） */}
+        <div className="w-full md:w-fit min-w-full md:min-w-0 mx-auto flex h-full items-stretch">
           {lists.map((list, i) => {
             // 分割线：所有列 border-l（列间单线 + 首列左边界线），末列额外 border-r（右边界线）；单列即末列 → 双侧
             const borderCls = i === lists.length - 1 ? 'md:border-l md:border-r' : 'md:border-l'
             return (
             <section
               key={list.id}
-              className={`w-full md:w-[425px] md:pr-6 ${borderCls} md:border-ink/15 shrink-0 snap-start overflow-y-auto md:overflow-hidden`}
+              className={`w-full md:w-[425px] ${borderCls} md:border-ink/15 shrink-0 snap-start overflow-y-auto md:overflow-hidden`}
               style={{ scrollSnapAlign: 'start' }}
             >
               {/* 桌面（≥768px）：完整自包含列面板 */}
@@ -885,26 +885,31 @@ function App() {
                 />
               </div>
 
-              {/* 移动端（<768px）：仅任务，配合全局浮层 */}
+              {/* 移动端（<768px）：仅任务，配合全局浮层。
+                  滚动容器是 section（移动端 overflow-y-auto），padding 直接放在内容容器上——
+                  内容可向上滚穿过 paddingTop 进入 header 渐变尾区被遮罩（与桌面列头同构），
+                  同时避免嵌套 h-full + overflow:visible 内容穿透 padding 的坑。
+                  底部留白 safe+128（减半）：底部操作栏高 ≈ safe+73.6，滚到底最后条距栏顶 ≈ 54px
+                  （顶部 108px 的一半，与桌面多列一致）。 */}
               <div
-                className="md:hidden h-full"
+                className="md:hidden"
                 style={{
                   paddingTop: 'calc(env(safe-area-inset-top) + 108px)',
-                  paddingBottom: 'calc(env(safe-area-inset-bottom) + 120px)',
+                  paddingBottom: 'calc(env(safe-area-inset-bottom) + 128px)',
                   paddingLeft: 'calc(env(safe-area-inset-left) + 24px)',
                   paddingRight: 'calc(env(safe-area-inset-right) + 24px)',
                 }}
               >
-                <div className="max-w-[640px] mx-auto h-full">
+                <div className="max-w-[640px] mx-auto">
                   {list.tasks.length === 0 ? (
                     // 空任务列表：放在 pl-8 的 main 之外，与「无列表」空态同一居中基准（相对 section 内容盒，视觉居中于页面）
-                    <div className="h-full flex items-center justify-center">
+                    <div className="min-h-[40vh] flex items-center justify-center">
                       <span className="font-mono text-[16px] leading-[1.6] text-mute select-none">
                         NO LISTS
                       </span>
                     </div>
                   ) : (
-                  <main className="pl-8 h-full">
+                  <main className="pl-8">
                     <DndContext
                       sensors={sensors}
                       collisionDetection={closestCenter}

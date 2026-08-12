@@ -289,7 +289,7 @@ export function TaskItem({
           ) : (
             <span
               onClick={handleClick}
-              className={`flex-1 font-mono text-[16px] leading-[1.6] break-words whitespace-pre-wrap cursor-pointer transition-colors duration-200 ${task.completed ? 'text-mute' : 'text-ink'}`}
+              className={`flex-1 min-w-0 font-mono text-[16px] leading-[1.6] break-words whitespace-pre-wrap cursor-pointer transition-colors duration-200 ${task.completed ? 'text-mute' : 'text-ink'}`}
             >
               {task.content}
             </span>

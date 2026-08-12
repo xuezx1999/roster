@@ -44,9 +44,10 @@
 
 ## 4. 布局规范
 
-- **移动端**：满屏。顶部固定标题（safe-area 上缘 + 24px，渐变向下淡出）、底部固定操作栏（safe-area 下缘 + 24px，渐变向上淡出）。
-- **桌面端（≥768px）**：滚动容器左右各 32px 留白（`md:px-8`），每个列表为定宽 `400px` 内容 + 左右 16px 内边距的**自包含列面板**（`ListPanel`）——列头（可编辑标题 + ≡ 列菜单）、任务区（内部滚动）、列底（ADD / actionMode 操作）。列间以 **24px 间距 + 1px 细竖线**（`#1A1A1A` 15% 透明度，终端分屏风格）分割：**所有列 `border-l`**（列间单线 + 首列左边界线），**末列额外 `border-r`**（右边界线）；列步进 425px（含间距/线）。**列总宽 < 视口时整组居中**（`w-fit min-w-full md:min-w-0 mx-auto`，桌面取内容宽 + auto margin），**≥ 视口可横向滚动时左对齐**（fit-content 钳制到容器宽、margin 归零）；展示不下的用键盘 `←`/`→` 按屏翻页；单列表/空列表仍禁横向滚动。全局浮层（顶部标题/底部 ADD）在桌面隐藏。不引入卡片/阴影/圆角。
+- **移动端**：满屏。顶部 fixed header（`linear-gradient(to bottom, bg 60%, transparent)`，safe-area 上缘 + 24px 起，内含标题与 ≡ 菜单）、底部 fixed 操作栏（`linear-gradient(to top, bg 60%, transparent)`，safe-area 下缘 + 24px）。**滚动容器 = section**（`overflow-y-auto md:overflow-hidden`），padding 直接放在内容上（顶部 `safe + 108`、底部 `safe + 128`），**不嵌套 `h-full`**——避免 `overflow:visible` 内容向下溢出穿透底部 padding。内容可向上滚穿过 paddingTop 进入 header 渐变尾区被自然淡出；滚到底最后一条距底部操作栏顶 ≈ 54px（顶部 108px 的一半，与桌面多列一致）。
+- **桌面端（≥768px）**：滚动容器左右各 32px 留白（`md:px-8`），每个列表为定宽 `400px` 内容 + 左右 16px 内边距的**自包含列面板**（`ListPanel`）。**Web 多列 = 移动端横向重复排列，交互/视觉必须一致**——ListPanel 与移动端同构：列头 `absolute` 浮层（顶部，`linear-gradient(to bottom, bg 60%, transparent)`，标题 + ≡ 菜单，高 108px，`paddingLeft/Right: safe + 16px` 等效 `px-4` 因 absolute 不受父 padding 影响）、列底 `absolute` 浮层（底部，`linear-gradient(to top, bg 60%, transparent)`，ADD / actionMode，`paddingLeft: safe + 48px` 对齐任务区 `px-4 + pl-8 = 48`）、任务区 `h-full overflow-y-auto` 占满列高（paddingTop `safe+108` 让位列头、paddingBottom `safe+128` 让位列底），内容可向上滚穿过列头渐变区、向下滚入列底渐变区被自然淡出；滚到底最后条距列底操作栏顶 ≈ 54px（顶部 108 的一半，与移动端一致）。列间以 **1px 细竖线**（`#1A1A1A` 15% 透明度，终端分屏风格）分隔、**相邻列紧贴**（原 `md:pr-6` 24px 列间距已移除——它使列内容左右不对称，右侧多 24px）：**所有列 `border-l`**（列间单线 + 首列左边界线），**末列额外 `border-r`**（右边界线）；列步进 425px（425 内容 + 1 线）。**列总宽 < 视口时整组居中**（`w-full md:w-fit min-w-full md:min-w-0 mx-auto`：**移动端固定 100% 宽**，防 `fit-content` + 百分比宽循环把列撑到内容宽（如长英文词），桌面取内容宽 + auto margin），**≥ 视口可横向滚动时左对齐**（fit-content 钳制到容器宽、margin 归零）；展示不下的用键盘 `←`/`→` 按屏翻页；单列表/空列表仍禁横向滚动。全局浮层（顶部标题/底部 ADD）在桌面隐藏。不引入卡片/阴影/圆角。
 - **安全区**：所有贴边元素必须用 `env(safe-area-inset-*)`，四个方向。
+- **滚动条**：全局隐藏（index.css：`* { scrollbar-width: none }` + `::-webkit-scrollbar { display: none }`），滚动功能保留——终端无滚动条美学，避免桌面滚动条挤压内容宽度。
 - **横向分页**：`snap-x snap-mandatory`，每列 `w-full md:w-[400px] shrink-0 snap-start`；**仅 >1 个列表时可横向滑动**（线性，首尾不可回绕），单列表/空列表禁用横向滑动（`overflow-x-hidden` + `touch-action: pan-y`）。
 - `index.html` 有 `viewport-fit=cover`，页面禁止水平滚动溢出。
 

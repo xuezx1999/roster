@@ -42,6 +42,15 @@ html {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* 全局隐藏滚动条（终端美学，滚动功能保留；WebKit + Firefox + 旧 Edge 三引擎） */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
 body {
   margin: 0;
   padding: 0;

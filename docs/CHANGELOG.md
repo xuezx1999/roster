@@ -6,6 +6,22 @@
 
 ---
 
+## [0.9.1] 2026-08-12 — 窄窗口布局修复：列宽撑爆/编辑宽度跳动/滚动条
+
+### 修复
+- **窄窗口（移动端布局）下列宽度被内容撑爆（P1）**：内层容器 `w-fit`（fit-content）与 section `w-full`（百分比宽）形成循环解析，section 实际宽度取内容 max-content（实测 735px，视口仅 375px），单列表 `overflow-x-hidden` 下右侧内容被裁切、点击区域错位，表现为"列表无法上下滚动/点击异常"。改为移动端 `w-full`（固定 100% 视口宽），桌面保留 `md:w-fit`（列总宽 < 视口居中逻辑不变）。已验证：section 375 = 视口宽、无横向溢出、纵向滚动正常、桌面 2 列 850px 居中于 1024 视口。
+- **桌面列内容左右不对称（P2，0.9.1 五次追加）**：section 原带 `md:pr-6`（24px 列间距）导致任务区右侧距列右 = 24 + 1(border) + 16(px-4) = 41px，左侧仅 1 + 16 = 17px（用户定位）。移除 `md:pr-6`，列间距 0（相邻列紧贴，1px 竖线分隔，终端分屏风格）；列步进仍 425px（425 内容 + 1 线）不受影响。CDP 实测：内容左/右 inset 均为 17px 对称，section paddingRight 0。
+- **桌面 ListPanel 列头/列底贴边 + 左右边距不对（P2，0.9.1 四次追加）**：重构后列头/列底改 `absolute` 浮层，`absolute` 元素相对 ListPanel padding box 定位、不受父 `px-4` 影响——列头 `left-0 right-0` 让标题和 ≡ 菜单贴 ListPanel 边缘（无 16px 视觉缩进），列底同理贴边；右侧 ≡ 菜单贴右（之前 `px-4` 留 16px）。修复：absolute 列头加 `paddingLeft/Right: safe + 16px`（等效原 `px-4`），列底加 `paddingLeft: safe + 48px`（对齐任务区 `px-4 + pl-8 = 48`）+ `paddingRight: safe + 16px`。CDP 实测列头距左 16px、任务区按钮距左 32px（`pl-8`）、列底距左 48px 全部对齐。
+- **滚动到底最后一条被底部操作栏遮挡 + 渐变遮罩丢失（P1，0.9.1 三次追加修复）**：第一次修复把滚动容器从 section 移到内层 main，导致移动端 header 渐变遮罩失效；第二次改为 section 仍为滚动容器 + padding 直接放内容（不嵌套 h-full），恢复移动端渐变遮罩，但**桌面多列列头渐变仍无效**——列头是 flex 静态块、任务区是独立滚动容器，内容永远穿不过列头渐变区。**第三次：桌面 ListPanel 重构为与移动端同构结构**（核心原则：**Web 多列 = 移动端横向重复排列，交互/视觉必须一致**）——列头改为 `absolute` 浮层 + 渐变遮罩（`linear-gradient(to bottom, bg 60%, transparent)`），列底改为 `absolute` 浮层 + 渐变向上（同移动端底部操作栏），任务区 `h-full` 占满列高（paddingTop `safe+108` 让位列头、paddingBottom `safe+128` 让位列底），内容可向上滚穿过列头渐变区、向下滚入列底渐变区被自然淡出。**底部留白两端统一减半**：移动端 `safe+180 → safe+128`（滚到底最后条距底部栏顶 ≈ 50px）、桌面任务区 `54px → safe+128`（距列底操作栏顶 ≈ 58px）——与顶部 108px 的一半对应。实测：移动端 scrollTop=60 时首条任务 y=0 穿过渐变区、底部 gap 50px；桌面同 60 时首条 y=48 穿过列头渐变区、底部 gap 58px。
+- **编辑文本时区域宽度跳动（P2）**：任务文本 span 缺 `min-w-0`（编辑态 textarea 有），长英文词/URL 的 min-content 撑宽 flex 行，编辑态收缩、退出后回弹。span 补 `min-w-0`，与 textarea 一致，长词走 `break-words` 换行不再撑宽。
+- **多列表出现滚动条（P3）**：scroller/section 滚动条仅隐藏了 Firefox 系（`scrollbar-width:none`），WebKit（Chrome/Edge/Safari）未隐藏。index.css 全局加 `::-webkit-scrollbar { display: none }` + `* { scrollbar-width: none; -ms-overflow-style: none }`，滚动功能保留。
+
+### 文档同步
+- `docs/DESIGN_SYSTEM.md` §4 布局描述更新（移动端 `w-full` 防撑宽 + 全局滚动条隐藏约定 + 底部留白对称）。
+- `package.json` version `0.9.0 → 0.9.1`。
+
+---
+
 ## [0.9.0] 2026-08-12 — 交互音效：cuelume 接入 + 音效开关
 
 ### 新增
