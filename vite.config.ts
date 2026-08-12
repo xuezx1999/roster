@@ -9,7 +9,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // prompt：新 SW 就绪后不自动激活，等待用户点击「新版本可用」提示再 skipWaiting + reload
+      registerType: 'prompt',
       manifest: {
         name: 'ROSTER',
         short_name: 'ROSTER',

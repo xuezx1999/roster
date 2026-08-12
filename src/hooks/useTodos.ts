@@ -9,6 +9,7 @@ import {
   saveActiveListId,
   saveBackup,
   getBackup,
+  seedDemoIfEmpty,
 } from '../db'
 import { generateId, parseRosterImport } from '../utils'
 
@@ -76,7 +77,7 @@ export function useTodos() {
     if (initialized.current) return
     initialized.current = true
     Promise.all([getAllLists(), getActiveListId(), getBackup()]).then(
-      ([storedLists, storedActive, backup]) => {
+      async ([storedLists, storedActive, backup]) => {
         const normalized = storedLists.map((l) => ({
           ...l,
           tasks: l.tasks.map(normalizeTask),
@@ -99,6 +100,23 @@ export function useTodos() {
           if (parsed && parsed.lists.length > 0) {
             pendingBackupRef.current = backup
             setDataLossDetected(true)
+          }
+        }
+        // 全新安装（无列表、无备份）：播种演示/引导列表，替代 NO LISTS 空态。
+        // 播种失败静默回退空态（不阻塞启动）；demo-seeded 标记保证用户主动清空后不再出现。
+        if (normalized.length === 0 && !backup) {
+          try {
+            const demo = await seedDemoIfEmpty()
+            if (demo) {
+              setLists([demo])
+              setActiveListId(demo.id)
+              saveActiveListId(demo.id).then(
+                () => reportSave(true),
+                () => reportSave(false)
+              )
+            }
+          } catch {
+            // 播种写失败：保持空态即可
           }
         }
         setLoaded(true)

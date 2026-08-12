@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { parseRosterImport } from './utils'
 import { sortTasks, normalizeTask } from './hooks/useTodos'
+import { buildDemoList } from './db'
 import type { Task, TodoList } from './types'
 
 function makeTask(overrides: Partial<Task> = {}): Task {
@@ -57,6 +58,28 @@ describe('normalizeTask', () => {
     const normalized = normalizeTask(raw as Task)
     expect(normalized.completed).toBe(false)
     expect(normalized.inProgress).toBe(false)
+  })
+})
+
+describe('buildDemoList', () => {
+  it('返回 9 条引导任务：1 进行中、7 待办、1 已完成', () => {
+    const demo = buildDemoList()
+    expect(demo.title).toBe('ROSTER（单击此处修改标题）')
+    expect(demo.tasks).toHaveLength(9)
+    expect(demo.tasks.filter((t) => t.inProgress && !t.completed)).toHaveLength(1)
+    expect(demo.tasks.filter((t) => t.completed)).toHaveLength(1)
+    expect(demo.tasks.filter((t) => !t.inProgress && !t.completed)).toHaveLength(7)
+  })
+
+  it('进行中置顶、已完成沉底、order 连续、id 唯一', () => {
+    const demo = buildDemoList()
+    const sorted = sortTasks(demo.tasks)
+    expect(sorted[0].inProgress).toBe(true)
+    expect(sorted[sorted.length - 1].completed).toBe(true)
+    sorted.forEach((t, i) => {
+      expect(t.order).toBe(i)
+    })
+    expect(new Set(demo.tasks.map((t) => t.id)).size).toBe(demo.tasks.length)
   })
 })
 

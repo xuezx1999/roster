@@ -108,3 +108,52 @@ export async function getBackup(): Promise<string | null> {
   const v = await db.get('meta', 'backup')
   return typeof v === 'string' && v.length > 0 ? v : null
 }
+
+// ---- 首次启动演示列表（产品演示 + 使用引导）----
+// 纯构建函数（可单测）：1 条「进行中」置顶演示 + 7 条操作引导 + 1 条「已完成」沉底演示。
+// 任务顺序与 sortTasks 输出一致（进行中 → 待办 → 已完成），order 连续。
+export function buildDemoList(): TodoList {
+  const now = Date.now()
+  const t = (content: string, extra: Partial<Task> = {}): Task => ({
+    id: generateId(),
+    content,
+    completed: false,
+    inProgress: false,
+    order: 0,
+    createdAt: now,
+    updatedAt: now,
+    ...extra,
+  })
+  const tasks = [
+    t('单击待办事项标记为“进行中”，该记录会自动置顶。', { inProgress: true }),
+    t('强烈建议移动端以 PWA 形式使用，让数据更安全。'),
+    t('双击空白区域或点击下方 [+]ADD 按钮添加待办事项。'),
+    t('长按（电脑端为右击）某条待办事项，激活排序或删除当条记录。'),
+    t('点击右上角菜单按钮，查看更多功能。'),
+    t('建议定期手动导出为 JSON 进行备份，导入数据会覆盖现有数据。'),
+    t('新增列表后，全屏幕左右滑动切换列表。'),
+    t('清除已完成事项仅对视野内的当前列表有效。'),
+    t('双击完成待办事项，该记录会自动沉底。', { completed: true, completedAt: now }),
+  ]
+  tasks.forEach((task, i) => {
+    task.order = i
+  })
+  return { id: generateId(), title: 'ROSTER（单击此处修改标题）', tasks }
+}
+
+// 全新安装（无任何列表且未播种过）时写入演示列表。
+// 幂等：已有列表 / 已播种（demo-seeded 标记）直接返回 null，用户主动清空后不会再次出现。
+// 播种写失败向上抛，由调用方静默兜底回空状态。
+export async function seedDemoIfEmpty(): Promise<TodoList | null> {
+  const db = await getDB()
+  const lists = await db.getAll('lists')
+  if (lists.length > 0) return null
+  const seeded = await db.get('meta', 'demo-seeded')
+  if (seeded) return null
+  const demo = buildDemoList()
+  const tx = db.transaction(['lists', 'meta'], 'readwrite')
+  await tx.objectStore('lists').put(demo)
+  await tx.objectStore('meta').put('1', 'demo-seeded')
+  await tx.done
+  return demo
+}

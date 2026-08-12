@@ -11,6 +11,7 @@ import {
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTodos } from './hooks/useTodos'
+import { usePwaUpdate } from './hooks/usePwaUpdate'
 import { EditableTitle } from './components/EditableTitle'
 import { TaskList } from './components/TaskList'
 import { AddTask, type AddTaskHandle } from './components/AddTask'
@@ -18,6 +19,11 @@ import { ListPanel } from './components/ListPanel'
 import { Bracket } from './components/Bracket'
 import type { Task, RosterExport } from './types'
 import { downloadJSON, parseRosterImport } from './utils'
+import {
+  MENU_PANEL_BACKGROUND,
+  MENU_PANEL_PADDING,
+  MENU_PANEL_RIGHT,
+} from './menuStyles'
 
 // 当前列表列宽（含桌面端间距与分隔线，即 snap/翻页步进）：桌面每列 425px（400 内容 + 24 间距 + 1px 分隔线），移动端整屏宽
 const getColWidth = (el: HTMLElement) => el.querySelector('section')?.offsetWidth ?? el.clientWidth
@@ -30,7 +36,6 @@ function App() {
     saveError,
     initError,
     dataLossDetected,
-    backupAvailable,
     restoreFromBackup,
     dismissDataLoss,
     addList,
@@ -56,6 +61,8 @@ function App() {
     reorderTasksFor,
     updateTitleFor,
   } = useTodos()
+
+  const { needRefresh, applyUpdate } = usePwaUpdate()
 
   const [actionModeId, setActionModeId] = useState<string | null>(null)
   const [suppressLayout, setSuppressLayout] = useState(false)
@@ -180,6 +187,9 @@ function App() {
 
   const isEmpty = lists.length === 0
   const headerTitle = isEmpty ? 'ROSTER' : (lists[currentIndex]?.title ?? 'ROSTER')
+  // 当前列表是否含已完成任务：决定菜单「清除完成」是否展示（无已完成时隐藏，与桌面列菜单一致）。
+  // 用 activeListId（菜单操作目标）而非 currentIndex（滚动驱动，动画期间可能滞后）
+  const hasCompleted = (lists.find((l) => l.id === activeListId)?.tasks.some((t) => t.completed)) ?? false
 
   const prevActiveListId = useRef(activeListId)
   const initialScrollDone = useRef(false)
@@ -463,8 +473,24 @@ function App() {
         </div>
       )}
 
-      {/* PWA 安装引导（iOS 添加到主屏可豁免 7 天清除规则）；垂直居中对齐顶部标题行；saveError 时让位 */}
-      {showPwaHint && !saveError && (
+      {/* 新版本可用提示（PWA prompt 模式）：新 SW 就绪后提示刷新；
+          位置与样式与下方 PWA 安装引导一致（黑底白字），两者互斥显示 */}
+      {needRefresh && !saveError && (
+        <div
+          className="fixed left-0 right-0 z-40 flex justify-center"
+          style={{ top: 'calc(env(safe-area-inset-top) + 18px)' }}
+        >
+          <button
+            onClick={applyUpdate}
+            className="flex items-baseline gap-2 font-mono text-[14px] leading-[1.4] text-bg bg-ink px-4 py-2 cursor-pointer select-none"
+          >
+            <Bracket>!</Bracket> 新版本可用 <Bracket>↻</Bracket>
+          </button>
+        </div>
+      )}
+
+      {/* PWA 安装引导（iOS 添加到主屏可豁免 7 天清除规则）；垂直居中对齐顶部标题行；saveError/新版本提示时让位 */}
+      {showPwaHint && !saveError && !needRefresh && (
         <div
           className="fixed left-0 right-0 z-40 flex justify-center"
           style={{ top: 'calc(env(safe-area-inset-top) + 18px)' }}
@@ -524,8 +550,9 @@ function App() {
                   transition={{ duration: 0.15 }}
                   className="absolute right-0 top-full mt-2 z-30 flex flex-col items-end gap-2"
                   style={{
-                    padding: '12px 16px 24px 48px',
-                    background: 'linear-gradient(to left, var(--color-bg) 60%, transparent 100%)',
+                    right: MENU_PANEL_RIGHT,
+                    padding: MENU_PANEL_PADDING,
+                    background: MENU_PANEL_BACKGROUND,
                   }}
                 >
                   <motion.button
@@ -593,54 +620,38 @@ function App() {
                     </AnimatePresence>
                   )}
 
-                  <AnimatePresence mode="wait" initial={false}>
-                    {confirmAction === 'clear' ? (
-                      <motion.button
-                        key="confirm-clear"
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 6 }}
-                        transition={{ duration: 0.15 }}
-                        onClick={() => {
-                          clearCompleted()
-                          setMenuOpen(false)
-                          setConfirmAction(null)
-                        }}
-                        className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-danger cursor-pointer select-none whitespace-nowrap"
-                      >
-                        <Bracket>✕</Bracket> 确认清除
-                      </motion.button>
-                    ) : (
-                      <motion.button
-                        key="clear"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.15 }}
-                        onClick={() => setConfirmAction('clear')}
-                        className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
-                      >
-                        <Bracket>−</Bracket> 清除完成
-                      </motion.button>
-                    )}
-                  </AnimatePresence>
-
-                  {backupAvailable && (
-                    <motion.button
-                      key="restore-backup"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.15 }}
-                      onClick={() => {
-                        void restoreFromBackup()
-                        setMenuOpen(false)
-                        setConfirmAction(null)
-                      }}
-                      className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
-                    >
-                      <Bracket>↩</Bracket> 恢复备份
-                    </motion.button>
+                  {hasCompleted && (
+                    <AnimatePresence mode="wait" initial={false}>
+                      {confirmAction === 'clear' ? (
+                        <motion.button
+                          key="confirm-clear"
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 6 }}
+                          transition={{ duration: 0.15 }}
+                          onClick={() => {
+                            clearCompleted()
+                            setMenuOpen(false)
+                            setConfirmAction(null)
+                          }}
+                          className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-danger cursor-pointer select-none whitespace-nowrap"
+                        >
+                          <Bracket>✕</Bracket> 确认清除
+                        </motion.button>
+                      ) : (
+                        <motion.button
+                          key="clear"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.15 }}
+                          onClick={() => setConfirmAction('clear')}
+                          className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
+                        >
+                          <Bracket>−</Bracket> 清除完成
+                        </motion.button>
+                      )}
+                    </AnimatePresence>
                   )}
 
                   <AnimatePresence mode="wait" initial={false}>
@@ -776,8 +787,6 @@ function App() {
                   onSaveOrder={handleSaveOrder}
                   onExport={exportData}
                   onReplace={replaceData}
-                  backupAvailable={backupAvailable}
-                  onRestoreFromBackup={() => void restoreFromBackup()}
                 />
               </div>
 
@@ -792,20 +801,21 @@ function App() {
                 }}
               >
                 <div className="max-w-[640px] mx-auto h-full">
+                  {list.tasks.length === 0 ? (
+                    // 空任务列表：放在 pl-8 的 main 之外，与「无列表」空态同一居中基准（相对 section 内容盒，视觉居中于页面）
+                    <div className="h-full flex items-center justify-center">
+                      <span className="font-mono text-[16px] leading-[1.6] text-mute select-none">
+                        NO LISTS
+                      </span>
+                    </div>
+                  ) : (
                   <main className="pl-8 h-full">
-                    {list.tasks.length === 0 ? (
-                      <div className="h-full flex items-center justify-center">
-                        <span className="font-mono text-[16px] leading-[1.6] text-mute select-none">
-                          NO LISTS
-                        </span>
-                      </div>
-                    ) : (
-                      <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleDragEnd}
-                        modifiers={[restrictToVerticalAxis]}
-                      >
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEnd}
+                      modifiers={[restrictToVerticalAxis]}
+                    >
                         <TaskList
                           tasks={list.tasks}
                           actionModeId={actionModeId}
@@ -816,8 +826,8 @@ function App() {
                           onLongPress={handleLongPress}
                         />
                       </DndContext>
-                    )}
                   </main>
+                  )}
                 </div>
               </div>
             </section>

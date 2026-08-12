@@ -8,6 +8,11 @@ import { AddTask, type AddTaskHandle } from './AddTask'
 import { Bracket } from './Bracket'
 import type { Task, TodoList, RosterExport } from '../types'
 import { downloadJSON, parseRosterImport } from '../utils'
+import {
+  MENU_PANEL_BACKGROUND,
+  MENU_PANEL_PADDING,
+  MENU_PANEL_RIGHT,
+} from '../menuStyles'
 
 interface ListPanelProps {
   list: TodoList
@@ -31,8 +36,6 @@ interface ListPanelProps {
   onSaveOrder: () => void
   onExport: () => RosterExport
   onReplace: (data: RosterExport) => void
-  backupAvailable: boolean
-  onRestoreFromBackup: () => void
 }
 
 type ConfirmAction = 'clear' | 'export' | 'import' | 'delete' | null
@@ -64,8 +67,6 @@ export function ListPanel({
   onSaveOrder,
   onExport,
   onReplace,
-  backupAvailable,
-  onRestoreFromBackup,
 }: ListPanelProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
@@ -89,6 +90,8 @@ export function ListPanel({
   }, [menuOpen])
 
   const isActionMode = actionModeId !== null && list.tasks.some((t) => t.id === actionModeId)
+  // 列表是否含已完成任务：决定列菜单「清除完成」是否展示（无已完成时隐藏，与移动端菜单一致）
+  const hasCompleted = list.tasks.some((t) => t.completed)
 
   const handleExport = () => {
     const data = onExport()
@@ -153,9 +156,8 @@ export function ListPanel({
         <div className="flex-1 min-w-0">
           <EditableTitle title={list.title} onSave={onSaveTitle} />
         </div>
-        {/* 右移 24px（= 列间 pr-6 间距，两者需同步修改）：[≡] 右缘距右侧分割线 = 16px，与标题左缘对称；
-            transform 不改变布局槽位（不与标题重叠），且成为下拉面板的定位基准，菜单相对 ≡ 关系不变 */}
-        <div className="relative" ref={menuRef} style={{ transform: 'translateX(24px)' }}>
+        {/* ≡ 菜单：定位/面板样式与移动端全局浮层完全一致（不右移），面板样式统一走 menuStyles */}
+        <div className="relative" ref={menuRef}>
           <button
             onClick={() => setMenuOpen((v) => !v)}
             className="font-mono text-[16px] leading-[1.6] text-ink select-none cursor-pointer"
@@ -173,9 +175,9 @@ export function ListPanel({
                 transition={{ duration: 0.15 }}
                 className="absolute right-0 top-full mt-2 z-30 flex flex-col items-end gap-2"
                 style={{
-                  right: 'calc(1ch - 16px)', // 面板右缘 = 容器右缘 - (1ch - 16px)，菜单项右缘（-16px 右 padding）与 ≡ 右缘对齐
-                  padding: '12px 16px 24px 48px',
-                  background: 'linear-gradient(to left, var(--color-bg) 60%, transparent 100%)',
+                  right: MENU_PANEL_RIGHT,
+                  padding: MENU_PANEL_PADDING,
+                  background: MENU_PANEL_BACKGROUND,
                 }}
               >
                 <motion.button
@@ -209,37 +211,39 @@ export function ListPanel({
                   <Bracket>+</Bracket> 新增列表
                 </motion.button>
 
-                <AnimatePresence mode="wait" initial={false}>
-                  {confirmAction === 'clear' ? (
-                    <motion.button
-                      key="confirm-clear"
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 6 }}
-                      transition={{ duration: 0.15 }}
-                      onClick={() => {
-                        onClearCompleted()
-                        setMenuOpen(false)
-                        setConfirmAction(null)
-                      }}
-                      className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-danger cursor-pointer select-none whitespace-nowrap"
-                    >
-                      <Bracket>✕</Bracket> 确认清除
-                    </motion.button>
-                  ) : (
-                    <motion.button
-                      key="clear"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.15 }}
-                      onClick={() => setConfirmAction('clear')}
-                      className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
-                    >
-                      <Bracket>−</Bracket> 清除完成
-                    </motion.button>
-                  )}
-                </AnimatePresence>
+                {hasCompleted && (
+                  <AnimatePresence mode="wait" initial={false}>
+                    {confirmAction === 'clear' ? (
+                      <motion.button
+                        key="confirm-clear"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 6 }}
+                        transition={{ duration: 0.15 }}
+                        onClick={() => {
+                          onClearCompleted()
+                          setMenuOpen(false)
+                          setConfirmAction(null)
+                        }}
+                        className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-danger cursor-pointer select-none whitespace-nowrap"
+                      >
+                        <Bracket>✕</Bracket> 确认清除
+                      </motion.button>
+                    ) : (
+                      <motion.button
+                        key="clear"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                        onClick={() => setConfirmAction('clear')}
+                        className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
+                      >
+                        <Bracket>−</Bracket> 清除完成
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+                )}
 
                 {canDelete && (
                   <AnimatePresence mode="wait" initial={false}>
@@ -273,24 +277,6 @@ export function ListPanel({
                       </motion.button>
                     )}
                   </AnimatePresence>
-                )}
-
-                {backupAvailable && (
-                  <motion.button
-                    key="restore-backup"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    onClick={() => {
-                      onRestoreFromBackup()
-                      setMenuOpen(false)
-                      setConfirmAction(null)
-                    }}
-                    className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
-                  >
-                    <Bracket>↩</Bracket> 恢复备份
-                  </motion.button>
                 )}
 
                 <AnimatePresence mode="wait" initial={false}>
