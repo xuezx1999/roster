@@ -39,7 +39,7 @@ function Inline({ nodes }: { nodes: InlineNode[] }) {
                 href={n.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline decoration-ink/30 underline-offset-4 hover:text-mute"
+                className="underline decoration-ink/30 underline-offset-4 hover:text-mute break-all"
               >
                 {n.text}
               </a>
@@ -199,7 +199,7 @@ export function HelpPage({ onBack }: HelpPageProps) {
 
       {/* 正文：可滚动；padding-top 与移动端列表任务区对齐（safe-area + 108px），
           让内容从 header 下方穿过时进入渐变尾区被遮罩 */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
         <div
           className="max-w-[640px] mx-auto px-6 pb-16"
           style={{
