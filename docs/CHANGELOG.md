@@ -1,3 +1,15 @@
+## [0.9.6] 2026-08-12 — 占位列 NO LISTS 占位补全 + 占位态双击直接新建条目
+
+### 修复
+- **移动端无列表占位区缺少 NO LISTS 占位文字（0.9.5 回归，P1）**：`App.tsx` 占位 section（`isEmpty` 分支）的移动端 div 此前为**空白 div**（0.9.5 改造为空状态交 ListPanel 占位时遗漏补移动端占位内容），任务区视觉一片黑——顶部 header（ROSTER + ≡）和底部 `[+] ADD` 浮层照常显示，但中部缺少与单列空 list / 桌面 ListPanel 占位同构的 `NO LISTS` 文字占位。修复：在该 div 内补 NO LISTS 占位（`min-h-[calc(100svh-...)] flex center`，与单列空 list 完全一致，居中基准 ≈ 50svh − 64，与桌面列 / 单列空 list 三者偏差 ≤4px）。
+- **桌面列 NO LISTS 占位相对页面中心偏右 16px（P2）**：`ListPanel` 任务区容器带 `pl-8`（32px 左 padding，对齐 Bracket 基线），NO LISTS 分支的 `flex justify-center` 是在扣除 padding 的内容盒内居中——文字相对列/页面中心偏右 16px（CDP 实测：1440 视口 `viewportDelta = +16`，与 `pl-8/2` 一致；移动端 NO LISTS 在 `pl-8` 的 `main` 之外占满外层 padding 间剩余空间，无此偏差）。修复：把 `pl-8` 从任务区容器移到非空分支（`TaskList` 外包 `<div className="pl-8">`），NO LISTS 分支占满任务区全宽居中——CDP 复测 `viewportDelta = 0`，与列中心、页面中心完全对齐。非空列表的任务对齐 Bracket 行为不变。
+
+### 文档同步
+- `package.json` version `0.9.5 → 0.9.6`。
+- `helpContent.ts` 使用说明「当前版本」0.9.5 → 0.9.6 + 主要更新内容追加本次变更说明。
+
+---
+
 ## [0.9.5] 2026-08-12 — 桌面端空列表状态改走 ListPanel 占位
 
 ### 变更

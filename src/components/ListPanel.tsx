@@ -148,6 +148,8 @@ export function ListPanel({
     const target = e.target as HTMLElement
     if (target.closest('button, input, textarea, [data-task]')) return
     if (actionModeId) return
+    // 占位列（list.id === '__empty__'）与正常列一致：双击空白打开列底 ADD input，
+    // 提交时由 App 的 onAddTask（占位列 = handleAddFirstTask）新建列表 + 写入任务，一步到位
     addTaskRef.current?.open()
   }
 
@@ -421,9 +423,11 @@ export function ListPanel({
       </div>
 
       {/* 任务区：占满列高（h-full），paddingTop 让位列头、paddingBottom 让位列底 + 54px 留白。
-          内容可向上滚穿过列头渐变区、向下滚入列底渐变区——与移动端 header/底部操作栏同构 */}
+          内容可向上滚穿过列头渐变区、向下滚入列底渐变区——与移动端 header/底部操作栏同构。
+          注意 pl-8（Bracket 对齐线缩进）只加在任务列表分支：NO LISTS 占位需占满任务区全宽居中，
+          若加在容器上会让 flex justify-center 在扣除 padding 的内容盒内居中，NO LISTS 相对列/页面偏右 16px */}
       <div
-        className="h-full overflow-y-auto pl-8"
+        className="h-full overflow-y-auto"
         style={{
           paddingTop: 'calc(env(safe-area-inset-top) + 108px)',
           // 列底浮层高 ≈ safe + 73.6，+54px 留白 → 滚到底最后一条距列底操作栏顶 ≈ 54px（列头 108 的一半）
@@ -437,22 +441,24 @@ export function ListPanel({
             </span>
           </div>
         ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={onDragEnd}
-            modifiers={[restrictToVerticalAxis]}
-          >
-            <TaskList
-              tasks={list.tasks}
-              actionModeId={actionModeId}
-              suppressLayout={suppressLayout}
-              onToggle={onToggle}
-              onToggleInProgress={onToggleInProgress}
-              onUpdate={onUpdate}
-              onLongPress={onLongPress}
-            />
-          </DndContext>
+          <div className="pl-8">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={onDragEnd}
+              modifiers={[restrictToVerticalAxis]}
+            >
+              <TaskList
+                tasks={list.tasks}
+                actionModeId={actionModeId}
+                suppressLayout={suppressLayout}
+                onToggle={onToggle}
+                onToggleInProgress={onToggleInProgress}
+                onUpdate={onUpdate}
+                onLongPress={onLongPress}
+              />
+            </DndContext>
+          </div>
         )}
       </div>
 
@@ -500,6 +506,8 @@ export function ListPanel({
               exit={{ opacity: 0, y: 8 }}
               transition={{ duration: 0.15 }}
             >
+              {/* 占位列（list.id === '__empty__'）与正常列统一渲染 AddTask：视觉都是 [+] ADD，
+                  占位列的 onAddTask 由 App 传 handleAddFirstTask（提交时新建列表 + 写入任务） */}
               <AddTask ref={addTaskRef} onAdd={onAddTask} />
             </motion.div>
           )}

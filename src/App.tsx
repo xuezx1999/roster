@@ -332,6 +332,15 @@ function App() {
     play('tick', { volume: 0.6 })
   }
 
+  // 占位态（无任何列表）提交首条任务：先新建列表再写入任务，一次完成。
+  // 依赖 React 批处理：addList 与 addTaskFor 的 setLists updater 按调用顺序排队执行，
+  // 后者执行时 prev 已包含新建列表，findIndex 可命中（不可改为 await 两段式，会破坏原子性）。
+  const handleAddFirstTask = (content: string) => {
+    const listId = addList()
+    addTaskFor(listId, content)
+    play('press', { volume: 0.5 })
+  }
+
   const handleConfirmDelete = () => {
     if (actionModeId) {
       removeTask(actionModeId)
@@ -361,7 +370,9 @@ function App() {
     if (actionModeId) return
     if (target.closest('header')) return
     if (lists.length === 0) {
-      handleAddList()
+      // 占位态（无任何列表）：双击直接打开底部 ADD input（一次进入"新建条目"交互），
+      // 提交时经 handleAddFirstTask 自动新建列表 + 写入任务；空列表仍可从菜单「新增列表」创建
+      addTaskRef.current?.open()
       return
     }
     addTaskRef.current?.open()
@@ -1005,7 +1016,8 @@ function App() {
                   onUpdate={() => {}}
                   onLongPress={handleLongPress}
                   onSaveTitle={() => {}}
-                  onAddTask={() => handleAddList()}
+                  // 占位列列底也是 AddTask（list.id === '__empty__' 时 ListPanel 内部渲染），onAdd 提交走 handleAddFirstTask：新建列表 + 写入任务一步到位
+                  onAddTask={handleAddFirstTask}
                   onClearCompleted={() => {}}
                   onAddList={handleAddList}
                   onDeleteList={() => {}}
@@ -1017,7 +1029,8 @@ function App() {
                   onOpenHelp={() => setView('help')}
                 />
               </div>
-              {/* 移动端：占位 secton 仅作为 snap-start 锚点，正文由全局浮层渲染 */}
+              {/* 移动端：占位 section 渲染 NO LISTS 占位（与单个空 list 同构：占满外层 padding 之间的剩余空间，使 NO LISTS 垂直居中于页面）——修复 0.9.5 重构时遗漏的占位文字。
+                  顶部 ROSTER / ≡ 菜单由全局 header 浮层接管，[+] ADD 由全局底部浮层接管（见 isEmpty 分支），与桌面 ListPanel 占位列视觉一致。 */}
               <div
                 className="md:hidden"
                 style={{
@@ -1026,7 +1039,13 @@ function App() {
                   paddingLeft: 'calc(env(safe-area-inset-left) + 24px)',
                   paddingRight: 'calc(env(safe-area-inset-right) + 24px)',
                 }}
-              />
+              >
+                <div className="min-h-[40vh] min-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-236px)] flex items-center justify-center">
+                  <span className="font-mono text-[16px] leading-[1.6] text-mute select-none">
+                    NO LISTS
+                  </span>
+                </div>
+              </div>
             </section>
           )}
         </div>
@@ -1077,26 +1096,6 @@ function App() {
                   </button>
                 </div>
               </motion.div>
-            ) : isEmpty ? (
-              <motion.div
-                key="add-list"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 8 }}
-                transition={{ duration: 0.15 }}
-              >
-                <button
-                  onClick={handleAddList}
-                  className="flex items-baseline gap-3 py-0.5 w-full text-left cursor-pointer select-none group"
-                >
-                  <span className="font-mono text-[16px] leading-[1.6] text-mute group-hover:text-ink transition-colors">
-                    <Bracket>+</Bracket>
-                  </span>
-                  <span className="font-mono text-[16px] leading-[1.6] text-mute group-hover:text-ink transition-colors">
-                    ADD
-                  </span>
-                </button>
-              </motion.div>
             ) : (
               <motion.div
                 key="add"
@@ -1105,7 +1104,10 @@ function App() {
                 exit={{ opacity: 0, y: 8 }}
                 transition={{ duration: 0.15 }}
               >
-                <AddTask ref={addTaskRef} onAdd={addTask} />
+                {/* 统一渲染 AddTask（占位态 [+] ADD 与正常态视觉一致）：
+                    无列表时 onAdd 走 handleAddFirstTask（新建列表 + 写入任务，一步到位），
+                    有列表时走 addTask（写入当前列表）——这样占位态双击/[+] ADD 直接进入"新建条目"交互 */}
+                <AddTask ref={addTaskRef} onAdd={isEmpty ? handleAddFirstTask : addTask} />
               </motion.div>
             )}
           </AnimatePresence>

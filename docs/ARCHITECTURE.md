@@ -128,9 +128,9 @@ updateList(listId, updater)  // useTodos.ts:62
 - 两个方向都会 `setActionModeId(null)` 复位操作模式。
 
 ### 5.2 交互入口（响应式双布局）
-- **移动端（<768px）**：全局浮层——双击空白（避开 button/input/[data-task]/header）→ 无列表时 `addList()`，否则打开底部添加框；底部栏 actionMode 时"删除此条 / 保存排序"，无列表时 `[+] ADD`，否则 AddTask；右上角 ≡ 菜单作用于当前列表。
+- **移动端（<768px）**：全局浮层——双击空白（避开 button/input/[data-task]/header）→ 无列表时打开底部添加框（提交时经 `handleAddFirstTask` 自动新建列表 + 写入任务，一步到位），有列表时打开底部添加框写入当前列表；底部栏 actionMode 时"删除此条 / 保存排序"，否则 AddTask（占位态与正常态视觉一致，均为 `[+] ADD`，`onAdd` 按 `isEmpty` 切换 `handleAddFirstTask` / `addTask`）；右上角 ≡ 菜单作用于当前列表。
 - **桌面端（≥768px）**：每列 `ListPanel` 自包含——列菜单（新增列表/清除完成/导出/导入）、列底 ADD、双击空白打开本列 ADD、长按本列任务出 actionMode 操作；无全局浮层（header/bottom bar `md:hidden`）。
-- 空列表状态：**当前列表无任务**（含无任何列表）时显示 `NO LISTS` 占位；无任何列表时移动端由全局底部浮层显示 `[+] ADD`，桌面端进入 `ListPanel` 占位列（与正常空 list 列同构：ROSTER 标题 + `[≡]` 菜单 + `NO LISTS` + 底部 `[+] ADD`，由虚拟 `PLACEHOLDER_LIST` 渲染；placeholder 的所有写操作禁用，底部 ADD 触发 `handleAddList` 新增真实列表）。
+- 空列表状态：**当前列表无任务**（含无任何列表）时显示 `NO LISTS` 占位；无任何列表时移动端由全局底部浮层显示 `[+] ADD`（点击/双击打开输入框，提交自动建列表+任务），桌面端进入 `ListPanel` 占位列（与正常空 list 列同构：ROSTER 标题 + `[≡]` 菜单 + `NO LISTS` + 底部 `[+] ADD`，由虚拟 `PLACEHOLDER_LIST` 渲染；placeholder 的任务写操作禁用，列底 ADD / 双击空白打开输入框，提交走 `handleAddFirstTask` 新建真实列表并写入首条任务；空列表仍可从菜单「新增列表」创建）。
 
 ## 6. 动画实现（三层叠加）
 
