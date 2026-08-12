@@ -939,8 +939,11 @@ function App() {
               >
                 <div className="max-w-[640px] mx-auto">
                   {list.tasks.length === 0 ? (
-                    // 空任务列表：放在 pl-8 的 main 之外，与「无列表」空态同一居中基准（相对 section 内容盒，视觉居中于页面）
-                    <div className="min-h-[40vh] flex items-center justify-center">
+                    // 空任务列表：放在 pl-8 的 main 之外，与桌面 ListPanel 同构——
+                    // 占满外层 padding 之间的剩余空间（100svh − safe-top − 108 − 128），
+                    // 使 NO LISTS 与「无列表」空态一致地垂直居中于页面；
+                    // min-h-[40vh] 仅为 svh 兜底（iOS < 16.4 不支持 100svh 时回退原行为）。
+                    <div className="min-h-[40vh] min-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-236px)] flex items-center justify-center">
                       <span className="font-mono text-[16px] leading-[1.6] text-mute select-none">
                         NO LISTS
                       </span>
