@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { parseRosterImport } from './utils'
-import { sortTasks, normalizeTask } from './hooks/useTodos'
+import { sortTasks, normalizeTask, sortLists } from './hooks/useTodos'
 import { buildDemoList } from './db'
 import type { Task, TodoList } from './types'
 
@@ -58,6 +58,24 @@ describe('normalizeTask', () => {
     const normalized = normalizeTask(raw as Task)
     expect(normalized.completed).toBe(false)
     expect(normalized.inProgress).toBe(false)
+  })
+})
+
+describe('sortLists', () => {
+  it('按 createdAt 升序排列（新列表在右侧末尾，刷新后不跳位）', () => {
+    const old = { id: 'a', title: 'A', tasks: [], createdAt: 100 }
+    const mid = { id: 'b', title: 'B', tasks: [], createdAt: 200 }
+    const fresh = { id: 'c', title: 'C', tasks: [], createdAt: 300 }
+    const sorted = sortLists([fresh, old, mid])
+    expect(sorted.map((l) => l.id)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('缺 createdAt 的旧数据视为 0 排最前，稳定保留相对顺序', () => {
+    const noTs1 = { id: 'x', title: 'X', tasks: [] }
+    const noTs2 = { id: 'y', title: 'Y', tasks: [] }
+    const withTs = { id: 'z', title: 'Z', tasks: [], createdAt: 1 }
+    const sorted = sortLists([withTs, noTs1, noTs2])
+    expect(sorted.map((l) => l.id)).toEqual(['x', 'y', 'z'])
   })
 })
 

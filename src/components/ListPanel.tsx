@@ -38,7 +38,7 @@ interface ListPanelProps {
   onReplace: (data: RosterExport) => void
 }
 
-type ConfirmAction = 'clear' | 'export' | 'import' | 'delete' | null
+type ConfirmAction = 'clear' | 'export' | 'import' | 'delete' | 'coming-soon' | null
 
 /**
  * 桌面多列（≥768px）的自包含列表面板：
@@ -195,6 +195,9 @@ export function ListPanel({
                   <Bracket>◐</Bracket> {theme === 'dark' ? '亮色模式' : '暗色模式'}
                 </motion.button>
 
+                {/* 分组分割线（菜单通用分组，两处同步维护） */}
+                <div className="w-full border-t border-ink/15" />
+
                 <motion.button
                   key="add-list"
                   initial={{ opacity: 0 }}
@@ -279,6 +282,9 @@ export function ListPanel({
                   </AnimatePresence>
                 )}
 
+                {/* 分组分割线：列表管理组 → 数据组 */}
+                <div className="w-full border-t border-ink/15" />
+
                 <AnimatePresence mode="wait" initial={false}>
                   {confirmAction === 'export' ? (
                     <motion.button
@@ -346,6 +352,38 @@ export function ListPanel({
                       className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
                     >
                       <Bracket>↓</Bracket> 导入数据
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+
+                {/* 分组分割线：数据组 → 帮助组 */}
+                <div className="w-full border-t border-ink/15" />
+
+                <AnimatePresence mode="wait" initial={false}>
+                  {confirmAction === 'coming-soon' ? (
+                    // 「正在建设中…」中间态：动画与确认态一致，但不标红
+                    <motion.button
+                      key="coming-soon"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ duration: 0.15 }}
+                      onClick={() => setConfirmAction(null)}
+                      className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
+                    >
+                      <Bracket>!</Bracket> 正在建设中…
+                    </motion.button>
+                  ) : (
+                    <motion.button
+                      key="help"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      onClick={() => setConfirmAction('coming-soon')}
+                      className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
+                    >
+                      <Bracket>?</Bracket> 使用说明
                     </motion.button>
                   )}
                 </AnimatePresence>

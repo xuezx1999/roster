@@ -32,6 +32,12 @@ export function normalizeTask(t: Task): Task {
   }
 }
 
+// 列表按创建时间排序（IndexedDB getAll 按主键 UUID 返回，必须显式排序持久化顺序）。
+// 缺 createdAt 的旧数据视为 0 排最前；稳定排序保留同值项的相对顺序。
+export function sortLists(lists: TodoList[]): TodoList[] {
+  return [...lists].sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))
+}
+
 export function useTodos() {
   const [lists, setLists] = useState<TodoList[]>([])
   const [activeListId, setActiveListId] = useState<string>('')
@@ -78,10 +84,12 @@ export function useTodos() {
     initialized.current = true
     Promise.all([getAllLists(), getActiveListId(), getBackup()]).then(
       async ([storedLists, storedActive, backup]) => {
-        const normalized = storedLists.map((l) => ({
-          ...l,
-          tasks: l.tasks.map(normalizeTask),
-        }))
+        const normalized = sortLists(
+          storedLists.map((l) => ({
+            ...l,
+            tasks: l.tasks.map(normalizeTask),
+          }))
+        )
         setLists(normalized)
         if (storedActive && normalized.some((l) => l.id === storedActive)) {
           setActiveListId(storedActive)
@@ -227,9 +235,11 @@ export function useTodos() {
       id: generateId(),
       title: 'ROSTER',
       tasks: [],
+      // 持久化创建顺序：刷新后仍保持在右侧末尾（IndexedDB getAll 不保证插入序）
+      createdAt: Date.now(),
     }
     setLists((prev) => {
-      const next = [...prev, newList]
+      const next = sortLists([...prev, newList])
       saveList(newList).then(
         () => {
           reportSave(true)
@@ -462,10 +472,12 @@ export function useTodos() {
     pendingBackupRef.current = JSON.stringify(snapshot)
     persistBackup(snapshot)
     // 导入数据归一化 + 重排分组：v1 旧格式/手工 JSON 的任务顺序不保证 进行中→待办→已完成，导入即修正
-    const importedLists = data.lists.map((l) => ({
-      ...l,
-      tasks: sortTasks(l.tasks.map(normalizeTask)),
-    }))
+    const importedLists = sortLists(
+      data.lists.map((l) => ({
+        ...l,
+        tasks: sortTasks(l.tasks.map(normalizeTask)),
+      }))
+    )
     setLists(importedLists)
     const validActive = importedLists.some((l) => l.id === data.activeListId)
       ? data.activeListId

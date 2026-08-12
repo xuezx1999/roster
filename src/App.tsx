@@ -67,7 +67,7 @@ function App() {
   const [actionModeId, setActionModeId] = useState<string | null>(null)
   const [suppressLayout, setSuppressLayout] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [confirmAction, setConfirmAction] = useState<'clear' | 'export' | 'import' | 'delete' | null>(null)
+  const [confirmAction, setConfirmAction] = useState<'clear' | 'export' | 'import' | 'delete' | 'coming-soon' | null>(null)
   const [importError, setImportError] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
   // 主题：初始值由 main.tsx 渲染前设置的 data-theme 决定
@@ -570,6 +570,9 @@ function App() {
                     <Bracket>◐</Bracket> {theme === 'dark' ? '亮色模式' : '暗色模式'}
                   </motion.button>
 
+                  {/* 分组分割线（菜单通用分组，两处同步维护） */}
+                  <div className="w-full border-t border-ink/15" />
+
                   <motion.button
                     key="add-list"
                     initial={{ opacity: 0 }}
@@ -654,6 +657,9 @@ function App() {
                     </AnimatePresence>
                   )}
 
+                  {/* 分组分割线：列表管理组 → 数据组 */}
+                  <div className="w-full border-t border-ink/15" />
+
                   <AnimatePresence mode="wait" initial={false}>
                     {confirmAction === 'export' ? (
                       <motion.button
@@ -721,6 +727,38 @@ function App() {
                         className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
                       >
                         <Bracket>↓</Bracket> 导入数据
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+
+                  {/* 分组分割线：数据组 → 帮助组 */}
+                  <div className="w-full border-t border-ink/15" />
+
+                  <AnimatePresence mode="wait" initial={false}>
+                    {confirmAction === 'coming-soon' ? (
+                      // 「正在建设中…」中间态：动画与确认态一致，但不标红
+                      <motion.button
+                        key="coming-soon"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 6 }}
+                        transition={{ duration: 0.15 }}
+                        onClick={() => setConfirmAction(null)}
+                        className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
+                      >
+                        <Bracket>!</Bracket> 正在建设中…
+                      </motion.button>
+                    ) : (
+                      <motion.button
+                        key="help"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                        onClick={() => setConfirmAction('coming-soon')}
+                        className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink cursor-pointer select-none whitespace-nowrap"
+                      >
+                        <Bracket>?</Bracket> 使用说明
                       </motion.button>
                     )}
                   </AnimatePresence>
