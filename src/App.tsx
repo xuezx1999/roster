@@ -420,6 +420,20 @@ function App() {
     e.preventDefault()
   }
 
+  // 自动导出提示横幅：自动导出后显示 5 秒（黑底白字，样式与 PWA 安装引导一致），可点击 ✕ 提前关闭
+  const [autoExportNote, setAutoExportNote] = useState(false)
+  const autoExportTimerRef = useRef<number | null>(null)
+  const showAutoExportNote = () => {
+    setAutoExportNote(true)
+    if (autoExportTimerRef.current !== null) window.clearTimeout(autoExportTimerRef.current)
+    autoExportTimerRef.current = window.setTimeout(() => setAutoExportNote(false), 5000)
+  }
+  useEffect(() => {
+    return () => {
+      if (autoExportTimerRef.current !== null) window.clearTimeout(autoExportTimerRef.current)
+    }
+  }, [])
+
   // PWA 安装引导：移动端（触屏）且未以 standalone 运行且未关闭过 → 提示添加到主屏幕（iOS 7 天规则豁免）
   const [showPwaHint, setShowPwaHint] = useState(false)
   useEffect(() => {
@@ -442,16 +456,17 @@ function App() {
     }
   }
 
-  // 定期自动导出：启动时距上次导出 >24h 且列表非空 → 桌面自动下载 JSON 备份（触屏端不自动下载，避免体验差）
+  // 定期自动导出：启动时距上次导出 >7 天且列表非空 → 桌面自动下载 JSON 备份。
+  // 触屏端（pointer 非 fine）不下载也不更新时间戳——避免消耗导出机会、避免非桌面环境误判
   useEffect(() => {
     if (!loaded || lists.length === 0) return
     try {
       const last = Number(localStorage.getItem('last-export') ?? '0')
-      if (Date.now() - last < 24 * 3600 * 1000) return
+      if (Date.now() - last < 7 * 24 * 3600 * 1000) return
+      if (!window.matchMedia('(pointer: fine)').matches) return
       localStorage.setItem('last-export', String(Date.now()))
-      if (window.matchMedia('(pointer: fine)').matches) {
-        doExport()
-      }
+      doExport()
+      showAutoExportNote()
     } catch {
       // localStorage 异常时跳过
     }
@@ -550,6 +565,28 @@ function App() {
           </button>
         </div>
       )}
+
+      {/* 自动导出提示（黑底白字，样式与 PWA 安装引导一致；自动导出后短暂显示，5 秒自动消失/点击 ✕ 关闭，exit 淡出 0.15s） */}
+      <AnimatePresence>
+        {autoExportNote && !saveError && !needRefresh && !showPwaHint && (
+          <motion.div
+            key="auto-export-note"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed left-0 right-0 z-40 flex justify-center"
+            style={{ top: 'calc(env(safe-area-inset-top) + 18px)' }}
+          >
+            <button
+              onClick={() => setAutoExportNote(false)}
+              className="flex items-baseline gap-2 font-mono text-[14px] leading-[1.4] text-bg bg-ink px-4 py-2 cursor-pointer select-none"
+            >
+              <Bracket>!</Bracket> 已自动导出备份 <Bracket>✕</Bracket>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Floating title（移动端专属浮层；桌面多列由各列面板自带标题；使用说明页由 HelpPage 自带标题栏） */}
       {view === 'lists' && (
       <header
