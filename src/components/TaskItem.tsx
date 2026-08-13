@@ -114,7 +114,7 @@ export function TaskItem({
 
     // 状态切换反馈：单击（进行中）/双击（完成）都响；长按进入 actionMode 的残留 click
     // 已被上方 justHandled* 抑制，不会误响
-    play('toggle', { volume: 0.5 })
+    play('toggle', { volume: 0.6 })
 
     if (clickTimerRef.current !== null) {
       window.clearTimeout(clickTimerRef.current)

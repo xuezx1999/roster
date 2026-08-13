@@ -125,7 +125,7 @@ function App() {
   // 保存失败横幅出现时播放 error 音（用户可恢复的错误反馈；首帧 saveError=false 不触发）
   const prevSaveErrorRef = useRef(saveError)
   useEffect(() => {
-    if (saveError && !prevSaveErrorRef.current) play('error', { volume: 0.7 })
+    if (saveError && !prevSaveErrorRef.current) play('error', { volume: 0.8 })
     prevSaveErrorRef.current = saveError
   }, [saveError])
   // 键盘弹出高度：iOS Safari 的 fixed 元素不会自动让位键盘，需按 visualViewport 高度差抬起底部栏。
@@ -329,7 +329,7 @@ function App() {
   // 新增列表：带轻量结果音效（全局菜单/列菜单/空态 ADD/双击空白共用同一入口）
   const handleAddList = () => {
     addList()
-    play('tick', { volume: 0.6 })
+    play('tick', { volume: 0.7 })
   }
 
   // 占位态（无任何列表）提交首条任务：先新建列表再写入任务，一次完成。
@@ -338,13 +338,13 @@ function App() {
   const handleAddFirstTask = (content: string) => {
     const listId = addList()
     addTaskFor(listId, content)
-    play('press', { volume: 0.5 })
+    play('press', { volume: 0.6 })
   }
 
   const handleConfirmDelete = () => {
     if (actionModeId) {
       removeTask(actionModeId)
-      play('droplet', { volume: 0.8 })
+      play('droplet', { volume: 0.9 })
     }
     setActionModeId(null)
   }
@@ -353,7 +353,7 @@ function App() {
   const handleConfirmDeleteFor = (listId: string) => {
     if (actionModeId) {
       removeTaskFor(listId, actionModeId)
-      play('droplet', { volume: 0.8 })
+      play('droplet', { volume: 0.9 })
     }
     setActionModeId(null)
   }
@@ -388,7 +388,7 @@ function App() {
 
   const handleExport = () => {
     doExport()
-    play('success', { volume: 0.6 })
+    play('success', { volume: 0.7 })
     setMenuOpen(false)
     setConfirmAction(null)
   }

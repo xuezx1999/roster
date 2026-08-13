@@ -106,7 +106,7 @@ export function ListPanel({
     const pad = (n: number) => String(n).padStart(2, '0')
     const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
     downloadJSON(data, `ROSTER-${stamp}.json`)
-    play('success', { volume: 0.6 })
+    play('success', { volume: 0.7 })
     setMenuOpen(false)
     setConfirmAction(null)
   }
@@ -255,7 +255,7 @@ export function ListPanel({
                         transition={{ duration: 0.15 }}
                         onClick={() => {
                           onClearCompleted()
-                          play('droplet', { volume: 0.8 })
+                          play('droplet', { volume: 0.9 })
                           setMenuOpen(false)
                           setConfirmAction(null)
                         }}
@@ -290,7 +290,7 @@ export function ListPanel({
                         transition={{ duration: 0.15 }}
                         onClick={() => {
                           onDeleteList()
-                          play('droplet', { volume: 0.8 })
+                          play('droplet', { volume: 0.9 })
                           setMenuOpen(false)
                           setConfirmAction(null)
                         }}

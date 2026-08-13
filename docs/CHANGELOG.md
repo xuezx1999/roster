@@ -1,3 +1,15 @@
+## [0.9.8] 2026-08-13 — 交互音效音量整体调大
+
+### 变更
+- **交互音效整体调大（各显式调用 +0.1）**：cuelume 全局 multiplier 默认已是 1.0（上限），属性触发（`data-cuelume-toggle`）的菜单/主题切换音无法再调大；对 4 个文件 11 处显式 `play(name, { volume })` 调用统一上调 0.1——`press`/`toggle` 0.5→0.6、`tick`/`success` 0.6→0.7、`error` 0.7→0.8、`droplet` 0.8→0.9（删除/清除类贴近库削波保护线，由库内置 compressor 兜底）。涉及：`src/App.tsx`（error/tick/press/droplet×2/success）、`src/components/TaskItem.tsx`（toggle）、`src/components/AddTask.tsx`（press）、`src/components/ListPanel.tsx`（success/droplet×2）。
+
+### 文档同步
+- `package.json` version `0.9.7 → 0.9.8`。
+- `helpContent.ts` 使用说明「当前版本」0.9.7 → 0.9.8 + 主要更新内容追加本次变更说明。
+- `docs/AI_CONTEXT.md` 当前项目状态版本号 0.9.7 → 0.9.8。
+
+---
+
 ## [0.9.7] 2026-08-13 — PWA 常驻内存时不提示新版本修复 + 使用说明语法修复
 
 ### 修复

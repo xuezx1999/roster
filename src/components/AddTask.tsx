@@ -33,7 +33,7 @@ export const AddTask = forwardRef<AddTaskHandle, AddTaskProps>(function AddTask(
     const trimmed = value.trim()
     if (trimmed) {
       onAdd(trimmed)
-      play('press', { volume: 0.5 })
+      play('press', { volume: 0.6 })
     }
     setValue('')
     setIsAdding(false)
