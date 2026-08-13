@@ -46,7 +46,7 @@ type ConfirmAction = 'clear' | 'export' | 'import' | 'delete' | null
 
 /**
  * 桌面多列（≥768px）的自包含列表面板：
- * 列头（可编辑标题 + ≡ 列菜单）+ 任务列表（或 NO LISTS 占位）+ 列底（actionMode 操作 / ADD）。
+ * 列头（可编辑标题 + ≡ 列菜单）+ 任务列表（或 NO TASKS 占位）+ 列底（actionMode 操作 / ADD）。
  * 菜单动作全部作用于本列（清除完成），全局动作（新增列表/导出/导入）由 App 回调提供。
  */
 export function ListPanel({
@@ -424,8 +424,8 @@ export function ListPanel({
 
       {/* 任务区：占满列高（h-full），paddingTop 让位列头、paddingBottom 让位列底 + 54px 留白。
           内容可向上滚穿过列头渐变区、向下滚入列底渐变区——与移动端 header/底部操作栏同构。
-          注意 pl-8（Bracket 对齐线缩进）只加在任务列表分支：NO LISTS 占位需占满任务区全宽居中，
-          若加在容器上会让 flex justify-center 在扣除 padding 的内容盒内居中，NO LISTS 相对列/页面偏右 16px */}
+          注意 pl-8（Bracket 对齐线缩进）只加在任务列表分支：NO TASKS 占位需占满任务区全宽居中，
+          若加在容器上会让 flex justify-center 在扣除 padding 的内容盒内居中，NO TASKS 相对列/页面偏右 16px */}
       <div
         className="h-full overflow-y-auto"
         style={{
@@ -437,7 +437,7 @@ export function ListPanel({
         {list.tasks.length === 0 ? (
           <div className="h-full flex items-center justify-center">
             <span className="font-mono text-[16px] leading-[1.6] text-mute select-none">
-              NO LISTS
+              NO TASKS
             </span>
           </div>
         ) : (

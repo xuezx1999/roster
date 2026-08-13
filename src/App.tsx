@@ -30,8 +30,8 @@ import {
 // 当前列表列宽（含桌面端间距与分隔线，即 snap/翻页步进）：桌面每列 425px（400 内容 + 24 间距 + 1px 分隔线），移动端整屏宽
 const getColWidth = (el: HTMLElement) => el.querySelector('section')?.offsetWidth ?? el.clientWidth
 
-// 无列表占位：桌面端无列表时渲染为 ListPanel 占位列（与正常空 list 同构：ROSTER 标题 + [≡] 菜单 + NO LISTS + 底部 ADD），
-// 因此桌面端不再渲染独立的「NO LISTS + [+] ADD」section。id 用魔法值避免与真实列表冲突；移动端由全局浮层接管 [+] ADD。
+// 无列表占位：桌面端无列表时渲染为 ListPanel 占位列（与正常空 list 同构：ROSTER 标题 + [≡] 菜单 + NO TASKS + 底部 ADD），
+// 因此桌面端不再渲染独立的「NO TASKS + [+] ADD」section。id 用魔法值避免与真实列表冲突；移动端由全局浮层接管 [+] ADD。
 const PLACEHOLDER_LIST: TodoList = { id: '__empty__', title: 'ROSTER', tasks: [] }
 
 function App() {
@@ -956,11 +956,11 @@ function App() {
                   {list.tasks.length === 0 ? (
                     // 空任务列表：放在 pl-8 的 main 之外，与桌面 ListPanel 同构——
                     // 占满外层 padding 之间的剩余空间（100svh − safe-top − 108 − 128），
-                    // 使 NO LISTS 与「无列表」空态一致地垂直居中于页面；
+                    // 使 NO TASKS 与「无列表」空态一致地垂直居中于页面；
                     // min-h-[40vh] 仅为 svh 兜底（iOS < 16.4 不支持 100svh 时回退原行为）。
                     <div className="min-h-[40vh] min-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-236px)] flex items-center justify-center">
                       <span className="font-mono text-[16px] leading-[1.6] text-mute select-none">
-                        NO LISTS
+                        NO TASKS
                       </span>
                     </div>
                   ) : (
@@ -990,7 +990,7 @@ function App() {
           })}
 
           {/* 空状态占位（无任何列表时）：
-              - 桌面端：渲染占位 ListPanel，与正常空 list 列视觉同构（顶部 ROSTER 标题 + [≡] 菜单 + NO LISTS + 底部 ADD）。
+              - 桌面端：渲染占位 ListPanel，与正常空 list 列视觉同构（顶部 ROSTER 标题 + [≡] 菜单 + NO TASKS + 底部 ADD）。
                 placeholder list 的所有写操作禁用，ADD 触发 handleAddList 新增真实列表。
               - 移动端：本 section 仅作 snap-start 锚点；视觉效果由全局浮层（顶部 header + 底部 [+] ADD）接管，与原有体验一致。
               末列同时带 `md:border-l md:border-r` 形成左右对称的列边界线，与"移动多列 = 移动端横向重复排列"原则一致。 */}
@@ -1029,7 +1029,7 @@ function App() {
                   onOpenHelp={() => setView('help')}
                 />
               </div>
-              {/* 移动端：占位 section 渲染 NO LISTS 占位（与单个空 list 同构：占满外层 padding 之间的剩余空间，使 NO LISTS 垂直居中于页面）——修复 0.9.5 重构时遗漏的占位文字。
+              {/* 移动端：占位 section 渲染 NO TASKS 占位（与单个空 list 同构：占满外层 padding 之间的剩余空间，使 NO TASKS 垂直居中于页面）——修复 0.9.5 重构时遗漏的占位文字。
                   顶部 ROSTER / ≡ 菜单由全局 header 浮层接管，[+] ADD 由全局底部浮层接管（见 isEmpty 分支），与桌面 ListPanel 占位列视觉一致。 */}
               <div
                 className="md:hidden"
@@ -1042,7 +1042,7 @@ function App() {
               >
                 <div className="min-h-[40vh] min-h-[calc(100svh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-236px)] flex items-center justify-center">
                   <span className="font-mono text-[16px] leading-[1.6] text-mute select-none">
-                    NO LISTS
+                    NO TASKS
                   </span>
                 </div>
               </div>

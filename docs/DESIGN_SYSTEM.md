@@ -34,6 +34,8 @@
 | 任务/按钮/输入 | 16px | 1.6 | 默认 |
 | 完成项 | 16px | 1.6 | 文本与左侧状态按钮颜色均降为 `#8C8C8C` |
 
+**中英文混排自动窄空格**（0.9.9 起）：任务内容、列表标题与使用说明页（标题/段落/节标题）的**显示层**自动在中文（含 CJK 标点/全角字符）与半角英文字母相邻处插入 `0.25em` 空 span（约四分之一汉字宽），避免中英文紧贴；手动半角空格约 0.5em 过宽，故用 CSS 定宽空元素。实现：`components/AutoSpace.tsx`（导出 `shouldGap`/`isCjk`/`isLatin`）；HelpPage 行内渲染在 text 节点用 AutoSpace，并在跨 `**bold**`/`` `code` ``/link 节点边界判断补 gap。**仅显示层生效**——存储、编辑框、复制保持原文；中文与数字之间不加空格（"第3个""8月"紧凑）；符号（`+` `/` `≡` `○` `←→` 等）与中文之间 AutoSpace 不覆盖，保留半角空格（不删除文档内既有符号边界空格）。
+
 字体栈（全局唯一，`--font-mono`）：
 ```
 'IBM Plex Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace
@@ -89,7 +91,7 @@
 | 横向翻页 | 列表数 > 1 时滑动 | 原生 scroll-snap，线性分页（首尾不可回绕） |
 | 拖拽结束后 | 一帧内 | `suppressLayout` 关 layout 动画 |
 
-> ⚠️ 横向翻页仅在有多个列表时可用；单列表（或无列表）容器为 `overflow-x-hidden`，不会产生横向滑动。当前列表无任务时主体显示 `NO LISTS` 占位，添加第一个任务后消失。
+> ⚠️ 横向翻页仅在有多个列表时可用；单列表（或无列表）容器为 `overflow-x-hidden`，不会产生横向滑动。当前列表无任务时主体显示 `NO TASKS` 占位，添加第一个任务后消失。
 
 实现位置：TaskItem.tsx:78-93（双击）、95-110（长按）、App.tsx:65-72（传感器）、110-117（suppressLayout）。
 

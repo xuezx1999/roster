@@ -64,7 +64,7 @@ updateList(listId, updater)  // useTodos.ts:62
 - **写失败可见**（v0.6.0 起）：所有写路径（saveList/saveAllLists/saveActiveListId/deleteList）失败时 `reportSave(false)` → `saveError` 置位，App 顶部显示 `[!] 保存失败`；成功复位。
 - **库内备份**（v0.6.0 起）：每次写成功后 `persistBackup` 把全量数据（RosterExport 格式）写入 `meta['backup']`；启动时若主库为空但有非空备份 → `dataLossDetected`，App 询问「恢复备份 / 忽略」（`restoreFromBackup` 走 `replaceData`）。备份写失败静默，不影响主数据。
 - **两套 API**：`addTaskFor/clearCompletedFor/...`（per-list，桌面多列按列调用）与 `addTask/clearCompleted/...`（activeListId 包装，移动端全局浮层）。
-- **自动删除空列表**（v0.2.6 起）：列表由"有任务"变为"无任务"（清除完成 / 删除任务删光）时，`updateList` 直接移除该列表（`deleteList` 落库）：若删的是当前列表，删光后 `activeListId=''` 回到初始空状态（NO LISTS + [+] ADD），否则回退到第一个列表。新建的空列表（`addList`）不经此路径，不受影响。
+- **自动删除空列表**（v0.2.6 起）：列表由"有任务"变为"无任务"（清除完成 / 删除任务删光）时，`updateList` 直接移除该列表（`deleteList` 落库）：若删的是当前列表，删光后 `activeListId=''` 回到初始空状态（NO TASKS + [+] ADD），否则回退到第一个列表。新建的空列表（`addList`）不经此路径，不受影响。
 
 ### 3.3 读路径
 `activeList = lists.find(l => l.id === activeListId)`。App.tsx 通过 `currentIndex` 定位当前展示的列表，两者通过 scroll 事件与 effect 双向同步（见 §5）。
@@ -103,7 +103,7 @@ updateList(listId, updater)  // useTodos.ts:62
 ### 4.4 ListPanel（桌面多列列面板）
 职责：≥768px 时每个列表列的**自包含面板**（App.tsx 在列 section 内 `hidden md:block` 渲染；移动端 `md:hidden` 仍用全局浮层 + 裸任务）：
 - 列头：可编辑标题（`EditableTitle`）+ ≡ 列菜单（新增列表 / 清除完成（本列）/ 删除列表（仅 `lists.length > 1` 时显示，两级确认）/ 导出数据 / 导入数据，两级确认）。
-- 任务区：`DndContext` + `TaskList`（或 NO LISTS 占位），内部滚动；拖拽/删除/添加均走 **per-list API**（`onDragEnd`/`onClearCompleted` 等由 App 闭包绑定 `list.id`）。
+- 任务区：`DndContext` + `TaskList`（或 NO TASKS 占位），内部滚动；拖拽/删除/添加均走 **per-list API**（`onDragEnd`/`onClearCompleted` 等由 App 闭包绑定 `list.id`）。
 - 列底：actionMode（本列任务被长按时显示"删除此条 / 保存排序"）或 `AddTask`；双击空白打开本列 ADD。
 - 菜单状态（menuOpen/confirmAction/importError）为**列内局部 state**，多列互不干扰。
 
@@ -130,7 +130,7 @@ updateList(listId, updater)  // useTodos.ts:62
 ### 5.2 交互入口（响应式双布局）
 - **移动端（<768px）**：全局浮层——双击空白（避开 button/input/[data-task]/header）→ 无列表时打开底部添加框（提交时经 `handleAddFirstTask` 自动新建列表 + 写入任务，一步到位），有列表时打开底部添加框写入当前列表；底部栏 actionMode 时"删除此条 / 保存排序"，否则 AddTask（占位态与正常态视觉一致，均为 `[+] ADD`，`onAdd` 按 `isEmpty` 切换 `handleAddFirstTask` / `addTask`）；右上角 ≡ 菜单作用于当前列表。
 - **桌面端（≥768px）**：每列 `ListPanel` 自包含——列菜单（新增列表/清除完成/导出/导入）、列底 ADD、双击空白打开本列 ADD、长按本列任务出 actionMode 操作；无全局浮层（header/bottom bar `md:hidden`）。
-- 空列表状态：**当前列表无任务**（含无任何列表）时显示 `NO LISTS` 占位；无任何列表时移动端由全局底部浮层显示 `[+] ADD`（点击/双击打开输入框，提交自动建列表+任务），桌面端进入 `ListPanel` 占位列（与正常空 list 列同构：ROSTER 标题 + `[≡]` 菜单 + `NO LISTS` + 底部 `[+] ADD`，由虚拟 `PLACEHOLDER_LIST` 渲染；placeholder 的任务写操作禁用，列底 ADD / 双击空白打开输入框，提交走 `handleAddFirstTask` 新建真实列表并写入首条任务；空列表仍可从菜单「新增列表」创建）。
+- 空列表状态：**当前列表无任务**（含无任何列表）时显示 `NO TASKS` 占位；无任何列表时移动端由全局底部浮层显示 `[+] ADD`（点击/双击打开输入框，提交自动建列表+任务），桌面端进入 `ListPanel` 占位列（与正常空 list 列同构：ROSTER 标题 + `[≡]` 菜单 + `NO TASKS` + 底部 `[+] ADD`，由虚拟 `PLACEHOLDER_LIST` 渲染；placeholder 的任务写操作禁用，列底 ADD / 双击空白打开输入框，提交走 `handleAddFirstTask` 新建真实列表并写入首条任务；空列表仍可从菜单「新增列表」创建）。
 
 ## 6. 动画实现（三层叠加）
 

@@ -110,7 +110,7 @@ export function useTodos() {
             setDataLossDetected(true)
           }
         }
-        // 全新安装（无列表、无备份）：播种演示/引导列表，替代 NO LISTS 空态。
+        // 全新安装（无列表、无备份）：播种演示/引导列表，替代 NO TASKS 空态。
         // 播种失败静默回退空态（不阻塞启动）；demo-seeded 标记保证用户主动清空后不再出现。
         if (normalized.length === 0 && !backup) {
           try {
@@ -164,7 +164,7 @@ export function useTodos() {
 
   // 通用写入口（按 listId 定位列表），含"自动删除空列表"：
   // 列表由"有任务"变为"无任务"（清除完成 / 删除任务删光）时移除该列表。
-  // 若删的是当前列表：删光后回到初始空状态（NO LISTS + [+] ADD），否则回退到第一个列表。
+  // 若删的是当前列表：删光后回到初始空状态（NO TASKS + [+] ADD），否则回退到第一个列表。
   // 新建的空列表（addList）不经过本路径，不会被误删。
   const updateList = useCallback(
     (listId: string, updater: (list: TodoList) => TodoList) => {

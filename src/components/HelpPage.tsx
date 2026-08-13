@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, Fragment } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { EditableTitle } from './EditableTitle'
 import { Bracket } from './Bracket'
+import { AutoSpace, shouldGap } from './AutoSpace'
 import { HELP_CONTENT } from '../helpContent'
 import { parseHelpMarkdown, type HelpSection, type HelpBlock, type InlineNode } from '../helpMarkdown'
 
@@ -12,40 +13,83 @@ interface HelpPageProps {
   onBack: () => void
 }
 
-/** 行内节点渲染：文本 / 加粗（500）/ 行内代码（淡底色）/ 链接（下划线，新窗口） */
+/** 节点的首个可见字符（bold 取第一个子节点递归，便于节点间边界判断） */
+function firstChar(n: InlineNode): string {
+  switch (n.type) {
+    case 'text':
+      return n.text[0] ?? ''
+    case 'bold':
+      return n.children.length > 0 ? firstChar(n.children[0]) : ''
+    case 'code':
+    case 'link':
+      return n.text[0] ?? ''
+  }
+}
+
+/** 节点的末个可见字符（bold 取最后一个子节点递归） */
+function lastChar(n: InlineNode): string {
+  switch (n.type) {
+    case 'text':
+      return n.text[n.text.length - 1] ?? ''
+    case 'bold':
+      return n.children.length > 0 ? lastChar(n.children[n.children.length - 1]) : ''
+    case 'code':
+    case 'link':
+      return n.text[n.text.length - 1] ?? ''
+  }
+}
+
+function renderInlineNode(n: InlineNode, key: number) {
+  switch (n.type) {
+    case 'text':
+      // text 节点内部中英边界由 AutoSpace 处理
+      return (
+        <span key={key}>
+          <AutoSpace text={n.text} />
+        </span>
+      )
+    case 'bold':
+      return (
+        <strong key={key} className="font-medium">
+          <Inline nodes={n.children} />
+        </strong>
+      )
+    case 'code':
+      // 行内代码保持原样（不自动加空格，避免污染代码片段）
+      return (
+        <code key={key} className="bg-ink/10 px-[4px]">
+          {n.text}
+        </code>
+      )
+    case 'link':
+      return (
+        <a
+          key={key}
+          href={n.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline decoration-ink/30 underline-offset-4 hover:text-mute break-all"
+        >
+          {n.text}
+        </a>
+      )
+  }
+}
+
+/** 行内节点渲染：文本 / 加粗（500）/ 行内代码（淡底色）/ 链接（下划线，新窗口）。
+ * 相邻节点之间若构成中英边界（如 **\`Enter\`**换行 中 code 与中文相邻）也插入窄空格，
+ * 保证与 AutoSpace 的文本级规则一致。 */
 function Inline({ nodes }: { nodes: InlineNode[] }) {
   return (
     <>
-      {nodes.map((n, i) => {
-        switch (n.type) {
-          case 'text':
-            return <span key={i}>{n.text}</span>
-          case 'bold':
-            return (
-              <strong key={i} className="font-medium">
-                <Inline nodes={n.children} />
-              </strong>
-            )
-          case 'code':
-            return (
-              <code key={i} className="bg-ink/10 px-[4px]">
-                {n.text}
-              </code>
-            )
-          case 'link':
-            return (
-              <a
-                key={i}
-                href={n.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline decoration-ink/30 underline-offset-4 hover:text-mute break-all"
-              >
-                {n.text}
-              </a>
-            )
-        }
-      })}
+      {nodes.map((n, i) => (
+        <Fragment key={i}>
+          {i > 0 && shouldGap(lastChar(nodes[i - 1]), firstChar(n)) && (
+            <span className="inline-block" style={{ width: '0.25em' }} />
+          )}
+          {renderInlineNode(n, i)}
+        </Fragment>
+      ))}
     </>
   )
 }
@@ -127,7 +171,9 @@ function Section({ section, collapsed, onToggle }: {
         >
           <Bracket>{isCollapsed ? '+' : '−'}</Bracket>
         </button>
-        <span className={titleCls}>{section.title}</span>
+        <span className={titleCls}>
+          <AutoSpace text={section.title} />
+        </span>
       </div>
       <AnimatePresence initial={false}>
         {!isCollapsed && (
@@ -185,7 +231,7 @@ export function HelpPage({ onBack }: HelpPageProps) {
       >
         <div className="max-w-[640px] mx-auto h-full flex items-baseline justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <EditableTitle title="ROSTER 使用说明" onSave={() => {}} editable={false} />
+            <EditableTitle title="ROSTER使用说明" onSave={() => {}} editable={false} />
           </div>
           <button
             onClick={onBack}

@@ -1,3 +1,29 @@
+## [0.9.10] 2026-08-13 — 空列表占位提示 NO LISTS → NO TASKS
+
+### 变更
+- **空列表占位提示语由 `NO LISTS` 改为 `NO TASKS`**（语义冲突修复）：原实现中"当前列表无任务"与"无任何列表"两种场景都显示 `NO LISTS`，前者（列表还在、只是没任务）语义误导。统一改为 `NO TASKS`（没有任务），覆盖两种空态；无任何列表时 `NO TASKS` 同样成立（无列表自然无任务）。涉及 3 处渲染（App 移动端空 list / App 无列表占位 / ListPanel 桌面空 list 列）及相关注释、使用说明、docs 描述同步。
+
+### 文档同步
+- `package.json` version `0.9.9 → 0.9.10`。
+- `src/helpContent.ts` 使用说明「当前版本」0.9.9 → 0.9.10 + 更新说明追加；正文 `NO LISTS` → `NO TASKS`。
+- `docs/ARCHITECTURE.md` §3.3/§5.2、`docs/DEVELOPMENT.md` §7、`docs/DESIGN_SYSTEM.md` §6 空态描述 `NO LISTS` → `NO TASKS`。
+- `docs/AI_CONTEXT.md` 当前项目状态版本号 0.9.9 → 0.9.10。
+
+---
+
+## [0.9.9] 2026-08-13 — 中英文混排自动加窄空格
+
+### 变更
+- **中英文混排自动加窄空格（约 1/4 汉字宽）**：任务内容、列表标题与使用说明页面、段落、节标题的**显示层**自动在中文（含 CJK 标点/全角字符）与半角英文字母相邻处插入 `0.25em` 窄空格，避免"中英文紧贴"；比手动半角空格（等宽字体下约 0.5em）更贴合排版习惯。**仅显示层生效**——存储数据、编辑框、复制内容始终是原文，导入导出不受影响；中文与数字之间不加（"第3个""8月"保持紧凑），符合主流中文排版规范；符号（`+` `/` `≡` `○` `←→` 等）与中文之间 AutoSpace 不覆盖，保留半角空格。实现：新增 `src/components/AutoSpace.tsx`（导出 `shouldGap`/`isCjk`/`isLatin` 供 HelpPage 复用；`useMemo` 缓存拆分结果），`TaskItem` 任务内容 + `EditableTitle` 标题（含 HelpPage 硬编码标题）+ `HelpPage` 行内节点渲染（text 节点 AutoSpace + 节点间跨 `**bold**`/`` `code` ``/link 边界补 gap）改用之。`helpContent.ts` 删除手动的中英/中数半角空格（含 Markdown 标记边界），符号边界空格保留。
+
+### 文档同步
+- `package.json` version `0.9.8 → 0.9.9`。
+- `src/helpContent.ts` 使用说明「当前版本」0.9.8 → 0.9.9 + 主要更新内容追加本次变更说明；正文删除手动的中英/中数边界空格（含 Markdown 标记边界），符号边界保留。
+- `docs/DESIGN_SYSTEM.md` §3 排版补充中英文混排窄空格规范（覆盖任务内容、列表标题、使用说明）。
+- `docs/AI_CONTEXT.md` 当前项目状态版本号 0.9.8 → 0.9.9。
+
+---
+
 ## [0.9.8] 2026-08-13 — 交互音效音量整体调大
 
 ### 变更
