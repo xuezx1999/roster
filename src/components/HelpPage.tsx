@@ -105,15 +105,15 @@ function Blocks({ blocks, indent }: { blocks: HelpBlock[]; indent: string }) {
             return <div key={i} className={`${indent} border-t border-ink/15 my-8`} />
           case 'paragraph':
             return (
-              <p key={i} className={`${indent} mt-3 font-mono text-[16px] leading-[1.6] text-ink`}>
+              <p key={i} className={`${indent} mt-3 font-mono text-[16px] leading-[1.6] text-ink text-justify`}>
                 <Inline nodes={b.children} />
               </p>
             )
           case 'quote':
             return (
-              <p key={i} className={`${indent} mt-3 flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink`}>
+              <p key={i} className={`${indent} mt-3 flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink text-justify`}>
                 <span className="shrink-0 select-none">&gt;</span>
-                <span>
+                <span className="flex-1 min-w-0">
                   <Inline nodes={b.children} />
                 </span>
               </p>
@@ -122,11 +122,11 @@ function Blocks({ blocks, indent }: { blocks: HelpBlock[]; indent: string }) {
             return (
               <ul key={i} className={`${indent} mt-3 flex flex-col gap-1`}>
                 {b.items.map((item, j) => (
-                  <li key={j} className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink">
+                  <li key={j} className="flex items-baseline gap-2 font-mono text-[16px] leading-[1.6] text-ink text-justify">
                     <span className="shrink-0 select-none">
                       {b.ordered ? `${j + 1}.` : '-'}
                     </span>
-                    <span>
+                    <span className="flex-1 min-w-0">
                       <Inline nodes={item} />
                     </span>
                   </li>
