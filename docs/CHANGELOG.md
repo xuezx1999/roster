@@ -1,4 +1,16 @@
-## [0.9.6] 2026-08-12 — 占位列 NO LISTS 占位补全 + 占位态双击直接新建条目
+## [0.9.7] 2026-08-13 — PWA 常驻内存时不提示新版本修复 + 使用说明语法修复
+
+### 修复
+- **已安装 PWA（standalone）长期不提示新版本（用户反馈，P1）**：SW 更新检查原本只在页面加载时发生一次——浏览器标签页每次打开都是全新加载所以很快提示；PWA 从主屏/App Switcher 恢复时**页面不重新加载**，SW 检查不发生，旧 JS 一直运行（iOS 尤其明显），版本提示与使用说明版本都停留在旧版。修复：`usePwaUpdate.ts` 保存 SW registration 并挂三路**主动检查**——`visibilitychange` → visible（PWA 从后台切回前台）、`window focus`（双保险）、60 分钟定时器兜底（前台长期存活）——任一检查发现新 SW 即走既有「新版本可用」提示，点击后 skipWaiting + 重载到最新版。浏览器直接打开行为不变。
+- **使用说明页自身未转义反引号导致 tsc/build 失败（0.9.6 带入）**：`helpContent.ts` 第 11 行 `` `pl-8` `` 两个反引号未转义，在模板字符串内直接终止字符串，`npx tsc -b` 报 `TS1005` 且构建挂掉。修复：改为 `\`pl-8\``（渲染效果不变）。
+
+### 文档同步
+- `package.json` version `0.9.6 → 0.9.7`。
+- `helpContent.ts` 使用说明「当前版本」0.9.6 → 0.9.7 + 主要更新内容追加本次变更说明。
+- `docs/DEVELOPMENT.md` §6 PWA 细节补充主动更新检查机制，并修正 `registerType` 描述（实际为 `prompt`，原文档误写 `autoUpdate`）。
+- `docs/AI_CONTEXT.md` 当前项目状态版本号 0.9.5 → 0.9.7。
+
+---
 
 ### 修复
 - **移动端无列表占位区缺少 NO LISTS 占位文字（0.9.5 回归，P1）**：`App.tsx` 占位 section（`isEmpty` 分支）的移动端 div 此前为**空白 div**（0.9.5 改造为空状态交 ListPanel 占位时遗漏补移动端占位内容），任务区视觉一片黑——顶部 header（ROSTER + ≡）和底部 `[+] ADD` 浮层照常显示，但中部缺少与单列空 list / 桌面 ListPanel 占位同构的 `NO LISTS` 文字占位。修复：在该 div 内补 NO LISTS 占位（`min-h-[calc(100svh-...)] flex center`，与单列空 list 完全一致，居中基准 ≈ 50svh − 64，与桌面列 / 单列空 list 三者偏差 ≤4px）。

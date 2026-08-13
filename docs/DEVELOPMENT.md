@@ -47,7 +47,8 @@ PWA 的 `virtual:pwa-register` 模块在**非 PROD 下不存在**——`main.tsx
 ## 6. PWA 细节
 
 配置在 `vite.config.ts`：
-- `registerType: 'autoUpdate'`：新版本自动激活 SW，无用户提示。
+- `registerType: 'prompt'`：新 SW 就绪后不自动激活，App 显示「新版本可用」提示，用户点击后 `skipWaiting + reload`（提示 UI 在 `App.tsx`，状态在 `hooks/usePwaUpdate.ts`）。
+- **主动更新检查（0.9.7 起）**：SW 更新检查默认只在页面加载时发生——浏览器每次打开都是全新加载所以能及时提示，但已安装 PWA 从主屏/App Switcher 恢复时页面不重新加载，永远不检查更新。`usePwaUpdate.ts` 挂三路主动检查：`visibilitychange`（切回前台）、`window focus`、60 分钟定时器，任一命中调用 `registration.update()`，发现新 SW 即触发既有提示。改动此类逻辑后务必在真机 PWA 复测（浏览器打开无法覆盖该场景）。
 - manifest：standalone、portrait、`#EFEFEF` 主题色，图标 192/512 + maskable。
 - workbox：预缓存 `**/*.{js,css,html,ico,png,svg,woff2}`。
 - 字体：**自托管**（`public/fonts/ibm-plex-mono-{400,500}.woff2`，latin 子集 ~10KB/字重），`index.css` `@font-face` + `font-display: swap`。无外部 CDN 运行时缓存（v0.8.8 起；此前 Google Fonts CacheFirst 1 年已移除，解决了改字体旧缓存命中问题）。若换字体，直接替换 `public/fonts/` 下的 woff2 并保持文件名即可（预缓存 hash 会自动更新）。
