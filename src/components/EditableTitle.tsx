@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { AutoSpace } from './AutoSpace'
 
 interface EditableTitleProps {
   title: string
@@ -67,7 +66,7 @@ export function EditableTitle({ title, onSave, editable = true }: EditableTitleP
       className={`w-full text-left font-mono text-[18px] leading-[1.4] tracking-[0.08em] text-ink uppercase select-none ${editable ? 'cursor-pointer' : 'cursor-default'}`}
       style={{ fontFamily: "'IBM Plex Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace" }}
     >
-      <AutoSpace text={title} />
+      {title}
     </button>
   )
 }

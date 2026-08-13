@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 import { play } from 'cuelume'
 import type { Task } from '../types'
 import { Bracket } from './Bracket'
-import { AutoSpace } from './AutoSpace'
 
 interface TaskItemProps {
   task: Task
@@ -288,11 +287,12 @@ export function TaskItem({
               className="flex-1 bg-transparent font-mono text-[16px] leading-[1.6] text-ink outline-none border-b border-ink min-w-0 resize-none overflow-hidden"
             />
           ) : (
-            <AutoSpace
-              text={task.content}
+            <span
               onClick={handleClick}
               className={`flex-1 min-w-0 font-mono text-[16px] leading-[1.6] break-words whitespace-pre-wrap cursor-pointer transition-colors duration-200 ${task.completed ? 'text-mute' : 'text-ink'}`}
-            />
+            >
+              {task.content}
+            </span>
           )}
         </div>
 
