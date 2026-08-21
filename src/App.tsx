@@ -20,7 +20,7 @@ import { ListPanel } from './components/ListPanel'
 import { HelpPage } from './components/HelpPage'
 import { Bracket } from './components/Bracket'
 import type { Task, TodoList, RosterExport } from './types'
-import { downloadJSON, parseRosterImport } from './utils'
+import { downloadJSON, parseRosterImport, canAutoScroll } from './utils'
 import {
   MENU_PANEL_BACKGROUND,
   MENU_PANEL_PADDING,
@@ -970,6 +970,8 @@ function App() {
                       collisionDetection={closestCenter}
                       onDragEnd={handleDragEnd}
                       modifiers={[restrictToVerticalAxis]}
+                      // 禁止 autoScroll 滚动横向分页容器（snap-mandatory 下拖拽会跳页），详见 utils.canAutoScroll
+                      autoScroll={{ canScroll: canAutoScroll }}
                     >
                         <TaskList
                           tasks={list.tasks}

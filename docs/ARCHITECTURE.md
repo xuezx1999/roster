@@ -144,6 +144,8 @@ updateList(listId, updater)  // useTodos.ts:62
 
 **冲突点**：framer-motion `layout` 和 dnd-kit 都操纵 transform。拖拽过程中列表重排会产生双重位移，因此 `TaskItem` 的 `layout={!suppressLayout}`，拖拽结束由 App.tsx 用 `requestAnimationFrame` 关一帧。
 
+**autoScroll 约束**（0.9.13）：dnd-kit autoScroll 会把所有 scrollable ancestor 纳入自动滚动——横向分页容器（`overflow-x-auto snap-x snap-mandatory`）也是，指针靠近视口左右边缘即横向滚动，snap 强制吸附导致拖拽跳页。两处 DndContext（App.tsx 移动端 / ListPanel.tsx 桌面端）统一传 `autoScroll={{ canScroll: canAutoScroll }}`（utils.ts），仅放行「纵向可滚、横向不可滚」容器。
+
 ## 7. 状态与持久化同步矩阵
 
 | 操作 | state 更新 | 持久化 |

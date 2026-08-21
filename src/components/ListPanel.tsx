@@ -8,7 +8,7 @@ import { TaskList } from './TaskList'
 import { AddTask, type AddTaskHandle } from './AddTask'
 import { Bracket } from './Bracket'
 import type { Task, TodoList, RosterExport } from '../types'
-import { downloadJSON, parseRosterImport } from '../utils'
+import { downloadJSON, parseRosterImport, canAutoScroll } from '../utils'
 import {
   MENU_PANEL_BACKGROUND,
   MENU_PANEL_PADDING,
@@ -447,6 +447,8 @@ export function ListPanel({
               collisionDetection={closestCenter}
               onDragEnd={onDragEnd}
               modifiers={[restrictToVerticalAxis]}
+              // 禁止 autoScroll 滚动横向分页容器（snap-mandatory 下拖拽会跳页），与移动端 DndContext 一致，详见 utils.canAutoScroll
+              autoScroll={{ canScroll: canAutoScroll }}
             >
               <TaskList
                 tasks={list.tasks}

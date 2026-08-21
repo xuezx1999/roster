@@ -88,6 +88,7 @@
 | 桌面右键 | 右键任务行（编辑态/拖拽中除外） | 阻止系统菜单，直接进入 actionMode（`onContextMenu`） |
 | 桌面右键（空白） | 全局拦截 | 禁用系统菜单（APP 沉浸感，App 根容器 `onContextMenu`）；编辑输入框除外（保留复制粘贴） |
 | 拖拽排序 | 仅 actionMode 下拖拽手柄 | dnd-kit TouchSensor delay 150ms / tolerance 12px |
+| 拖拽自动滚动 | 指针靠近可滚动容器边缘 | dnd-kit autoScroll（`canScroll` 仅放行纵向容器，**禁止横向分页容器自动滚动**——snap-mandatory 下会强制吸附导致拖拽跳页，0.9.13） |
 | 横向翻页 | 列表数 > 1 时滑动 | 原生 scroll-snap，线性分页（首尾不可回绕） |
 | 拖拽结束后 | 一帧内 | `suppressLayout` 关 layout 动画 |
 

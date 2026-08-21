@@ -1,3 +1,19 @@
+## [0.9.13] 2026-08-21 — 修复多列表拖拽排序跳页
+
+### 变更
+- **修复移动端多列表拖拽排序「页面跳闪（跳到其他列表）」**：dnd-kit `autoScroll` 默认开启，会把外层横向分页容器（`overflow-x-auto snap-x snap-mandatory`，scrollable ancestor）也纳入自动滚动。拖拽时指针靠近视口左右边缘（拖拽手柄在行右侧，拇指天然接近右缘）即触发横向滚动，iOS scroll-snap 强制吸附到相邻列表 → 跳页；且跳页后 `activeListId` 漂移，拖拽结束的 `reorderTasks` 会作用到错误列表。
+- **修复**：新增 `src/utils.ts` `canAutoScroll(el)`（dnd-kit autoScroll 的 `canScroll` 判定）——仅允许「纵向可滚、横向不可滚」的容器自动滚动，排除横向分页容器；移动端（App.tsx DndContext）与桌面端（ListPanel.tsx DndContext）统一传入 `autoScroll={{ canScroll }}`。纵向列表（section overflow-y-auto）的拖拽自动滚动（长列表滚到底/顶）不受影响。
+- 需真机（iPhone Safari/PWA）复测确认。
+
+### 文档同步
+- `package.json` version `0.9.12 → 0.9.13`。
+- `src/helpContent.ts` 使用说明「当前版本」0.9.12 → 0.9.13；主要更新内容替换为本版说明（延续"只保留最新一版"约定）。
+- `docs/DESIGN_SYSTEM.md` §6 拖拽时序补充 autoScroll 约束说明。
+- `docs/ARCHITECTURE.md` §6 动画冲突点补充横向分页容器禁止 autoScroll。
+- `docs/AI_CONTEXT.md` 当前项目状态版本号 0.9.12 → 0.9.13。
+
+---
+
 ## [0.9.12] 2026-08-13 — 取消中英文自动加窄空格功能
 
 ### 变更

@@ -15,6 +15,22 @@ export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 11)
 }
 
+/**
+ * dnd-kit autoScroll 的 canScroll 判定：只允许「纵向可滚、横向不可滚」的容器自动滚动。
+ *
+ * 背景：ROSTER 多列表时外层 scrollerRef 是 `overflow-x-auto snap-x snap-mandatory` 横向分页容器，
+ * 它是拖拽项的 scrollable ancestor。dnd-kit autoScroll 默认开启，拖拽时指针靠近视口左右边缘
+ * （拖拽手柄在行右侧，拇指天然接近右缘）就会滚动该容器，而 scroll-snap 会强制吸附到相邻列表
+ * → 拖拽排序时"页面跳闪（跳到其他列表）"，且 activeListId 漂移后 dragEnd 的 reorderTasks 会作用到错误列表。
+ *
+ * 此处排除横向可滚容器（横向分页容器 scrollWidth > clientWidth），纵向列表（section overflow-y-auto）
+ * 的拖拽自动滚动不受影响。+1 为 border/取整容差。
+ */
+export function canAutoScroll(el: Element): boolean {
+  if (!(el instanceof HTMLElement)) return false
+  return el.scrollHeight > el.clientHeight + 1 && el.scrollWidth <= el.clientWidth + 1
+}
+
 // 导出 JSON 为下载文件（ROSTER-YYYYMMDD-HHMMSS.json）
 export function downloadJSON(data: unknown, filename: string): void {
   const json = JSON.stringify(data, null, 2)
